@@ -9,25 +9,144 @@ import {
   RepairTicket,
   SmartLockerBooking,
   CafeteriaCrowd,
-  LeaveRecord
+  LeaveRecord,
+  MerchantStore
 } from '../types';
+import studentAvatarImg from '../assets/images/student_avatar_portrait_1794556729603.jpg';
+import bubbleTeaImg from '../assets/images/merchant_bubble_tea_1794556729551.jpg';
+import cafeLatteImg from '../assets/images/merchant_cafe_latte_1794556728913.jpg';
+import healthyBentoImg from '../assets/images/merchant_healthy_bento_1794556730228.jpg';
+import bawanFoodImg from '../assets/images/merchant_bawan_food_1794556730758.jpg';
+
+export const DEFAULT_AVATAR_URL = studentAvatarImg;
+
+// 7-day cycle check-in reward schedule:
+// Day 1: +10, Day 2: +15, Day 3: +25 (+10 bonus), Day 4: +30, Day 5: +35, Day 6: +40, Day 7: +65 (+20 bonus)
+export const CHECKIN_CYCLE_REWARDS = [
+  { day: 1, points: 10, label: '+10 點', bonusText: '第 1 天起步' },
+  { day: 2, points: 15, label: '+15 點', bonusText: '第 2 天累積' },
+  { day: 3, points: 25, label: '+25 點', bonusText: '加碼多給 10 點' },
+  { day: 4, points: 30, label: '+30 點', bonusText: '連續簽到遞增' },
+  { day: 5, points: 35, label: '+35 點', bonusText: '連續簽到遞增' },
+  { day: 6, points: 40, label: '+40 點', bonusText: '連續簽到遞增' },
+  { day: 7, points: 65, label: '+65 點', bonusText: '週期額外 +20 點' },
+];
 
 export const DEMO_STUDENT: StudentProfile = {
-  id: 'cyut-std-11007042',
-  studentNo: 'B11007042',
+  id: 'cyut-std-s11007042',
+  role: 'student',
+  studentNo: 's11007042',
   name: '林朝陽',
   department: '資訊工程系 (資工系)',
   semester: '大三 第 1 學期',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-  points: 680,
-  streakDays: 6,
-  lastCheckInDate: null, // Ready for check-in today
-  lotteryTickets: 3,
+  avatar: DEFAULT_AVATAR_URL,
+  points: 2150,
+  streakDays: 2,
+  lastCheckInDate: null, // Triggers daily check-in popup until claimed
+  lotteryTickets: 2,
   tronclassConnected: true,
   tronclassToken: 'cyut_tron_jwt_live_session_94a28b01',
   geminiApiKey: '',
   isLoggedIn: true,
 };
+
+export const DEMO_TEACHER: StudentProfile = {
+  id: 'cyut-prof-t940218',
+  role: 'teacher',
+  studentNo: 't940218',
+  name: '陳特聘教授',
+  department: '資訊學院 · 資訊工程系',
+  semester: '115 學年度第 1 學期',
+  avatar: DEFAULT_AVATAR_URL,
+  points: 0,
+  streakDays: 0,
+  lastCheckInDate: null,
+  lotteryTickets: 0,
+  tronclassConnected: true,
+  tronclassToken: 'cyut_faculty_tron_jwt_88c19e',
+  geminiApiKey: '',
+  isLoggedIn: true,
+};
+
+export const DEMO_MERCHANT_PROFILE: StudentProfile = {
+  id: 'cyut-merch-01',
+  role: 'merchant',
+  studentNo: 'morningtea@cyut-partner.tw',
+  name: '晨曦手搖飲店長',
+  department: '特約商家 · 飲品合作夥伴',
+  semester: '年繳合作方案',
+  avatar: DEFAULT_AVATAR_URL,
+  points: 0,
+  streakDays: 0,
+  lastCheckInDate: null,
+  lotteryTickets: 0,
+  tronclassConnected: false,
+  geminiApiKey: '',
+  isLoggedIn: true,
+  merchantStoreId: 'store-morning-tea',
+};
+
+export const DEMO_MERCHANTS: MerchantStore[] = [
+  {
+    id: 'store-morning-tea',
+    ownerEmail: 'morningtea@cyut-partner.tw',
+    name: '晨曦手作黑糖波霸專賣',
+    category: '手搖飲品',
+    address: '台中市霧峰區吉峰東路168號 第一學餐B1',
+    phone: '04-2332-3000 #7102',
+    plan: 'yearly',
+    paid: true,
+    coverImage: bubbleTeaImg,
+    menuImage: bubbleTeaImg,
+    website: 'https://campus-tea.cyut.example.tw',
+    businessHours: '週一至週五 09:30 - 19:30',
+    latestPromo: '出示朝陽學生證全品項折 NT$ 5，黑糖波霸鮮奶第二杯半價',
+    updatedAt: '2026-11-12',
+  },
+  {
+    id: 'store-wave-coffee',
+    ownerEmail: 'wavecafe@cyut-partner.tw',
+    name: '波浪廣場 · 晨光精品咖啡',
+    category: '咖啡輕食',
+    address: '台中市霧峰區吉峰東路168號 波浪廣場1F',
+    phone: '04-2339-8821',
+    plan: 'quarterly',
+    paid: true,
+    coverImage: cafeLatteImg,
+    menuImage: cafeLatteImg,
+    businessHours: '每日 07:45 - 20:00',
+    latestPromo: '期中週美式與拿鐵買二送一',
+    updatedAt: '2026-11-12',
+  },
+  {
+    id: 'store-green-bento',
+    ownerEmail: 'greenbento@cyut-partner.tw',
+    name: '綠漾健康舒肥輕食餐盒',
+    category: '健康餐盒',
+    address: '台中市霧峰區吉峰東路168號 第二學餐1F',
+    phone: '04-2332-5519',
+    plan: 'monthly',
+    paid: true,
+    coverImage: healthyBentoImg,
+    businessHours: '週一至週六 10:30 - 19:00',
+    latestPromo: '雙主菜舒肥餐盒加贈無糖冷泡茶',
+    updatedAt: '2026-11-11',
+  },
+  {
+    id: 'store-wufeng-bawan',
+    ownerEmail: 'wufengbawan@cyut-partner.tw',
+    name: '霧峰老街傳承肉圓',
+    category: '在地小吃',
+    address: '台中市霧峰區中正路812號',
+    phone: '04-2330-4418',
+    plan: 'yearly',
+    paid: true,
+    coverImage: bawanFoodImg,
+    menuImage: bawanFoodImg,
+    businessHours: '週二至週日 11:00 - 20:30',
+    updatedAt: '2026-11-10',
+  },
+];
 
 export const DEMO_COURSES: Course[] = [
   {
@@ -35,8 +154,8 @@ export const DEMO_COURSES: Course[] = [
     code: 'CS301',
     name: '計算機網路與分散式系統',
     professor: '黃教授',
-    classroom: 'T2-308',
-    building: '圖資大樓 (T2)',
+    classroom: 'M-308',
+    building: '資訊大樓 (M)',
     dayOfWeek: 1, // Mon
     startPeriod: 3,
     endPeriod: 4,
@@ -50,8 +169,8 @@ export const DEMO_COURSES: Course[] = [
     code: 'CS315',
     name: '人工智慧與機器學習導論',
     professor: '陳特聘教授',
-    classroom: 'T2-402',
-    building: '圖資大樓 (T2)',
+    classroom: 'M-201',
+    building: '資訊大樓 (M)',
     dayOfWeek: 2, // Tue
     startPeriod: 1,
     endPeriod: 2,
@@ -65,8 +184,8 @@ export const DEMO_COURSES: Course[] = [
     code: 'CS322',
     name: '演算法實務與競程',
     professor: '張副教授',
-    classroom: 'T2-205',
-    building: '圖資大樓 (T2)',
+    classroom: 'M-205',
+    building: '資訊大樓 (M)',
     dayOfWeek: 3, // Wed
     startPeriod: 5,
     endPeriod: 7,
@@ -95,8 +214,8 @@ export const DEMO_COURSES: Course[] = [
     code: 'MGT309',
     name: '科技創業與專利佈局',
     professor: '王客座教授',
-    classroom: 'M-201',
-    building: '管理大樓 (M)',
+    classroom: 'T2-503',
+    building: '管理大樓 (T2)',
     dayOfWeek: 4, // Thu
     startPeriod: 6,
     endPeriod: 7,
@@ -110,8 +229,8 @@ export const DEMO_COURSES: Course[] = [
     code: 'GEN104',
     name: '跨文化溝通與國際視野',
     professor: 'Dr. Katherine Smith',
-    classroom: 'G-105',
-    building: '人文科技大樓 (G)',
+    classroom: 'T1-208',
+    building: '教學大樓 (T1)',
     dayOfWeek: 5, // Fri
     startPeriod: 3,
     endPeriod: 4,
@@ -132,7 +251,7 @@ export const DEMO_TODOS: TodoItem[] = [
     dueDate: '2026-11-15 23:59',
     urgent: true,
     completed: false,
-    pointsReward: 30,
+    pointsReward: 5,
     detailUrl: 'https://tronclass.cyut.edu.tw/assignment/4012',
     description: '實作多執行緒 TCP Chat Server 並撰寫 Wireshark 封包分析報告。',
   },
@@ -145,7 +264,7 @@ export const DEMO_TODOS: TodoItem[] = [
     dueDate: '2026-11-17 10:00',
     urgent: true,
     completed: false,
-    pointsReward: 20,
+    pointsReward: 5,
     detailUrl: 'https://tronclass.cyut.edu.tw/quiz/8812',
     description: '涵蓋 CNN 卷積運算、損失函數與梯度下降推導。',
   },
@@ -158,7 +277,7 @@ export const DEMO_TODOS: TodoItem[] = [
     dueDate: '2026-11-20 18:00',
     urgent: false,
     completed: false,
-    pointsReward: 15,
+    pointsReward: 5,
     description: '系學會與助教整理之動態規劃 (DP) 與圖論 (Dijkstra) 必考範題。',
   },
   {
@@ -170,7 +289,7 @@ export const DEMO_TODOS: TodoItem[] = [
     dueDate: '2026-11-18 23:59',
     urgent: false,
     completed: true,
-    pointsReward: 10,
+    pointsReward: 5,
     description: '講述高流暢微動畫與無障礙色彩對比 WCAG AA 標準。',
   },
   {
@@ -182,6 +301,7 @@ export const DEMO_TODOS: TodoItem[] = [
     dueDate: '2026-11-25 17:00',
     urgent: false,
     completed: false,
+    pointsReward: 5,
     description: '請同學於截止日前至教務資訊系統提出線上停修申請。',
   },
 ];
@@ -190,7 +310,7 @@ export const DEMO_COUPONS: Coupon[] = [
   {
     id: 'cp-1',
     title: '朝陽波霸鮮奶茶 $15 抵用券',
-    storeName: '第一學餐 · 晨曦手搖飲',
+    storeName: '晨曦手作黑糖波霸專賣',
     category: 'beverage',
     originalValue: 60,
     discountDescription: '滿 50 元現折 15 元 (全品項通用)',
@@ -201,23 +321,23 @@ export const DEMO_COUPONS: Coupon[] = [
   },
   {
     id: 'cp-2',
-    title: '路易莎咖啡朝陽門市 拿鐵 8 折優惠',
-    storeName: '波浪廣場路易莎咖啡',
+    title: '晨光精品拿鐵 8 折優惠',
+    storeName: '波浪廣場 · 晨光精品咖啡',
     category: 'coffee',
     originalValue: 90,
     discountDescription: '大杯拿鐵/美式享單杯 8 折',
-    code: 'LOUISA-CYUT-4481',
+    code: 'WAVE-CYUT-4481',
     expiryDate: '2026-12-30',
     isUsed: false,
     isListedForSale: true,
-    salePrice: 70, // 70 <= 90 * 0.95 = 85.5 (Valid C2C resale)
-    sellerId: 'cyut-std-11007042',
+    salePrice: 70,
+    sellerId: 'cyut-std-s11007042',
     sellerName: '林朝陽',
   },
   {
     id: 'cp-3',
-    title: '霧峰肉圓老街店 招牌套餐折 $20',
-    storeName: '霧峰老街美食合作社',
+    title: '霧峰老街肉圓 招牌套餐折 $20',
+    storeName: '霧峰老街傳承肉圓',
     category: 'snack',
     originalValue: 80,
     discountDescription: '肉圓兩顆加四神湯折 20 元',

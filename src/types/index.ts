@@ -1,15 +1,38 @@
-export type NavigationTab = 
-  | 'overview' 
-  | 'academic' 
-  | 'ai-tutor' 
-  | 'rewards' 
-  | 'social' 
-  | 'campus-life' 
-  | 'campus-3d';
+export type UserRole = 'student' | 'teacher' | 'merchant';
+
+export type NavigationTab =
+  | 'overview'
+  | 'academic'
+  | 'ai-tutor'
+  | 'rewards'
+  | 'social'
+  | 'campus-life'
+  | 'campus-3d'
+  | 'merchant-portal';
+
+export type MerchantPlan = 'monthly' | 'quarterly' | 'yearly';
+
+export interface MerchantStore {
+  id: string;
+  ownerEmail: string;
+  name: string;
+  category: string;
+  address: string;
+  phone: string;
+  plan: MerchantPlan;
+  paid: boolean;
+  coverImage?: string;
+  menuImage?: string;
+  website?: string;
+  businessHours?: string;
+  latestPromo?: string;
+  updatedAt: string;
+}
 
 export interface StudentProfile {
   id: string;
-  studentNo: string;
+  role: UserRole;
+  studentNo: string; // Student ID (s...) or Faculty ID (t...) or Merchant email
   name: string;
   department: string;
   semester: string;
@@ -22,6 +45,7 @@ export interface StudentProfile {
   tronclassToken?: string;
   geminiApiKey?: string;
   isLoggedIn: boolean;
+  merchantStoreId?: string;
 }
 
 export interface Course {
@@ -75,6 +99,14 @@ export interface Coupon {
 
 export type SocialCategory = 'feed' | 'department' | 'mixer' | 'club' | 'exchange';
 
+export interface SocialAttachment {
+  id: string;
+  name: string;
+  size: string;
+  mimeType: string;
+  dataUrl?: string;
+}
+
 export interface SocialPost {
   id: string;
   authorId: string;
@@ -96,8 +128,10 @@ export interface SocialPost {
     time: string;
   }[];
   tag?: string;
-  price?: number; // for exchange
-  itemCondition?: string; // for exchange
+  price?: number;
+  itemCondition?: string;
+  images?: string[];
+  attachments?: SocialAttachment[];
 }
 
 export interface BusRouteInfo {

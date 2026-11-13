@@ -1,31 +1,42 @@
 import React, { useState } from 'react';
-import { askGeminiTutor, extractKeyNotes, TutorMode } from '../services/geminiService';
-import { 
-  Sparkles, 
-  Send, 
-  Key, 
-  ToggleLeft, 
-  ToggleRight, 
-  BookOpen, 
-  FileText, 
-  HelpCircle, 
-  CheckCircle, 
-  Lightbulb, 
-  Bot, 
-  User, 
-  Trash2,
+import {
+  askGeminiTutor,
+  extractKeyNotes,
+  runTeacherAITask,
+  TeacherAITaskType,
+  TutorMode,
+} from '../services/geminiService';
+import { UserRole } from '../types';
+import {
+  Sparkles,
+  Send,
+  Key,
+  BookOpen,
+  FileText,
+  CheckCircle,
+  Lightbulb,
+  Bot,
+  User,
   Copy,
-  Check
+  Check,
+  Upload,
+  Calculator,
+  ClipboardList,
+  GraduationCap,
 } from 'lucide-react';
 
 interface AITutorViewProps {
+  role: UserRole;
   apiKey?: string;
   onSaveApiKey: (key: string) => void;
 }
 
-export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }) => {
-  const [mode, setMode] = useState<TutorMode>('guiding'); // Default: guiding (提示引導模式)
-  const [activeSubTab, setActiveSubTab] = useState<'chat' | 'extract'>('chat');
+export const AITutorView: React.FC<AITutorViewProps> = ({ role, apiKey, onSaveApiKey }) => {
+  const isTeacher = role === 'teacher';
+  const [mode, setMode] = useState<TutorMode>('guiding');
+  const [activeSubTab, setActiveSubTab] = useState<'chat' | 'extract' | 'teacher-tools'>(
+    isTeacher ? 'teacher-tools' : 'chat'
+  );
   const [inputKey, setInputKey] = useState(apiKey || '');
   const [showKeyModal, setShowKeyModal] = useState(false);
 
@@ -36,24 +47,34 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
     {
       id: 'init-msg',
       role: 'model',
-      content: `👋 哈囉！我是你的朝陽科技大學專屬 AI 學習導師。\n\n目前處於預設的【提示引導模式】（Socratic Method）——我會拆解思路、給予提示與引導提問，協助你獨立推導出答案，加深期中期末考記憶！\n\n若你急需完整推導細節，可隨時點擊右上角切換至【直接解答模式】。今天有哪門課的教材或演算法想一起探討？`,
+      content: isTeacher
+        ? '您好，歡迎使用朝陽教師 AI 助手。可直接提問教學規劃，或切換至「教師教材 AI 工坊」上傳講義與成績單。'
+        : '你好！我是你的朝陽 AI 學習導師。目前預設為「提示引導模式」，可隨時於對話輸入框下方切換為「直接解答模式」或配置 BYOK 金鑰。',
       timestamp: '剛剛',
     },
   ]);
   const [inputPrompt, setInputPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Extractor state
+  // Student Extractor state
   const [extractInput, setExtractInput] = useState('');
   const [extractResult, setExtractResult] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Teacher AI Studio state
+  const [teacherTask, setTeacherTask] = useState<TeacherAITaskType>('quiz');
+  const [teacherMaterialName, setTeacherMaterialName] = useState('');
+  const [teacherMaterialText, setTeacherMaterialText] = useState('');
+  const [teacherExtraPrompt, setTeacherExtraPrompt] = useState('');
+  const [teacherResult, setTeacherResult] = useState('');
+  const [isRunningTeacherTask, setIsRunningTeacherTask] = useState(false);
+  const [teacherCopied, setTeacherCopied] = useState(false);
+
   const sampleQuestions = [
-    '計算機網路中 TCP 三向交握 (Three-Way Handshake) 為什麼需要三次而不是兩次？',
-    '演算法 Dijkstra 和 Bellman-Ford 的核心差異與適用情境是什麼？',
-    '機器學習中的 Overfitting (過擬合) 要如何透過 Regularization 改善？',
-    'UI/UX 設計中 Fitts\'s Law (費茨法則) 在行動 App 選單上的應用原理？',
+    '計算機網路中 TCP 三向交握為什麼需要三次而不是兩次？',
+    '演算法 Dijkstra 和 Bellman-Ford 的差異與適用情境是什麼？',
+    '機器學習 Overfitting 如何透過 Regularization 改善？',
   ];
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -71,7 +92,6 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
     setInputPrompt('');
     setIsGenerating(true);
 
-    // Format history for Gemini
     const history = messages.slice(1).map((m) => ({
       role: m.role,
       parts: [{ text: m.content }],
@@ -104,122 +124,262 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleTeacherFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTeacherMaterialName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = typeof reader.result === 'string' ? reader.result : '';
+      if (content) {
+        setTeacherMaterialText(content);
+      } else {
+        setTeacherMaterialText(`【已載入檔案：${file.name} (${Math.round(file.size / 1024)} KB)】\n請在此補充教材關鍵段落或成績清單內容。`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleRunTeacherAI = async () => {
+    if (!teacherMaterialText.trim() || isRunningTeacherTask) return;
+    setIsRunningTeacherTask(true);
+    const output = await runTeacherAITask(
+      apiKey,
+      teacherTask,
+      teacherMaterialText,
+      teacherExtraPrompt
+    );
+    setTeacherResult(output);
+    setIsRunningTeacherTask(false);
+  };
+
+  const loadTeacherSample = (task: TeacherAITaskType) => {
+    setTeacherTask(task);
+    if (task === 'grades') {
+      setTeacherMaterialName('CS315_期中成績紀錄.csv');
+      setTeacherMaterialText(
+        `學號姓名,平時成績,期中考,期末專題\ns11007042 林朝陽,92,88,95\ns11007015 張宇軒,78,64,72\ns11007089 李思穎,85,91,89\ns11007104 王小明,55,48,58\ns11007112 陳志豪,70,62,68`
+      );
+    } else {
+      setTeacherMaterialName('計算機網路_第4章講義.txt');
+      setTeacherMaterialText(
+        `Chapter 4: Transport Layer (TCP & UDP)\n- UDP provides connectionless, best-effort delivery with minimal 8-byte header overhead.\n- TCP establishes reliable full-duplex connections via 3-way handshake (SYN, SYN-ACK, ACK).\n- Flow control uses Sliding Window, while Congestion Control uses Slow Start, AIMD, and Fast Retransmit.`
+      );
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Top Controller Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-[#161F30] to-slate-900 border border-slate-800 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#E50914] flex items-center justify-center text-white shadow-lg shadow-red-950/40">
-            <Sparkles className="w-5 h-5" />
+    <div className="space-y-5">
+      {/* Sub-tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {isTeacher && (
+            <button
+              onClick={() => setActiveSubTab('teacher-tools')}
+              className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition ${
+                activeSubTab === 'teacher-tools'
+                  ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>教師專屬 AI 教材工坊</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setActiveSubTab('chat')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition ${
+              activeSubTab === 'chat'
+                ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <Bot className="w-4 h-4" />
+            <span>AI 即時對話</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('extract')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition ${
+              activeSubTab === 'extract'
+                ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>教材重點萃取</span>
+          </button>
+        </div>
+
+        <button
+          onClick={() => setShowKeyModal(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl transition"
+        >
+          <Key className="w-3.5 h-3.5 text-[#E50914]" />
+          <span>{apiKey ? 'BYOK 金鑰已配置' : '配置 BYOK 金鑰'}</span>
+        </button>
+      </div>
+
+      {/* TEACHER EXCLUSIVE AI WORKSPACE */}
+      {isTeacher && activeSubTab === 'teacher-tools' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-6 p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-base font-bold text-white">教師教材上傳與 AI 任務選擇</h3>
+              <button
+                type="button"
+                onClick={() => loadTeacherSample(teacherTask)}
+                className="text-xs font-semibold text-[#E50914] hover:underline"
+              >
+                帶入測試範例資料
+              </button>
+            </div>
+
+            {/* 3 Teacher AI Task Buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setTeacherTask('quiz')}
+                className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition ${
+                  teacherTask === 'quiz'
+                    ? 'bg-[#E50914]/15 border-[#E50914] text-white'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <ClipboardList className="w-4 h-4 text-[#E50914]" />
+                <span>AI 自動出題</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTeacherTask('outline')}
+                className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition ${
+                  teacherTask === 'outline'
+                    ? 'bg-[#E50914]/15 border-[#E50914] text-white'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-amber-400" />
+                <span>整理上課大綱</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTeacherTask('grades')}
+                className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition ${
+                  teacherTask === 'grades'
+                    ? 'bg-[#E50914]/15 border-[#E50914] text-white'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Calculator className="w-4 h-4 text-emerald-400" />
+                <span>計算學生成績</span>
+              </button>
+            </div>
+
+            {/* File Upload Input */}
+            <label className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-slate-950 border border-dashed border-slate-700 hover:border-[#E50914]/70 cursor-pointer transition">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Upload className="w-4 h-4 text-[#E50914] shrink-0" />
+                <span className="text-xs text-slate-200 truncate">
+                  {teacherMaterialName
+                    ? `已載入檔案：${teacherMaterialName}`
+                    : '點擊上傳課程教材檔案（支援 .txt / .md / .csv / .json）'}
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-[#E50914] shrink-0">選擇檔案</span>
+              <input
+                type="file"
+                accept=".txt,.md,.csv,.json,.log"
+                onChange={handleTeacherFileUpload}
+                className="hidden"
+              />
+            </label>
+
+            <textarea
+              rows={8}
+              value={teacherMaterialText}
+              onChange={(e) => setTeacherMaterialText(e.target.value)}
+              placeholder={
+                teacherTask === 'grades'
+                  ? '貼入或上傳學生成績 CSV（例如：學號姓名, 平時, 期中, 期末）...'
+                  : '貼入或上傳課程教材講義、簡報文字內容...'
+              }
+              className="w-full p-3.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white font-mono leading-relaxed focus:outline-none focus:border-[#E50914] resize-none"
+            />
+
+            <input
+              type="text"
+              value={teacherExtraPrompt}
+              onChange={(e) => setTeacherExtraPrompt(e.target.value)}
+              placeholder={
+                teacherTask === 'grades'
+                  ? '配分權重備註（選填，預設平時30% / 期中35% / 期末35%）'
+                  : '額外要求（選填，例如：出 5 題英文選擇題、適合 100 分鐘課程）'
+              }
+              className="w-full px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+            />
+
+            <button
+              type="button"
+              onClick={handleRunTeacherAI}
+              disabled={isRunningTeacherTask || !teacherMaterialText.trim()}
+              className="w-full py-3 rounded-xl bg-[#E50914] hover:bg-red-600 disabled:opacity-40 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition"
+            >
+              <Sparkles className={`w-4 h-4 ${isRunningTeacherTask ? 'animate-spin' : ''}`} />
+              <span>
+                {isRunningTeacherTask
+                  ? 'AI 運算處理中...'
+                  : teacherTask === 'quiz'
+                  ? '依據上傳教材自動出題'
+                  : teacherTask === 'outline'
+                  ? '自動整理結構化上課大綱'
+                  : '立即精算成績與預警統計'}
+              </span>
+            </button>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>CYUT 智慧 AI 學習助手系統</span>
-            </h2>
-            <div className="text-xs text-slate-400 mt-0.5">
-              整合 Google Gemini 2.5 核心 · 支援學生 BYOK 自備金鑰 · 雙模式深度輔助
+
+          <div className="lg:col-span-6 p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col min-h-[520px]">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-white">教師 AI 產出結果</h3>
+              {teacherResult && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(teacherResult);
+                    setTeacherCopied(true);
+                    setTimeout(() => setTeacherCopied(false), 2000);
+                  }}
+                  className="flex items-center gap-1 text-xs text-slate-300 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700"
+                >
+                  {teacherCopied ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                  <span>{teacherCopied ? '已複製' : '複製結果'}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto netflix-scrollbar p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+              {teacherResult ? (
+                teacherResult
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center py-12">
+                  <GraduationCap className="w-9 h-9 mb-2 opacity-40 text-[#E50914]" />
+                  <p className="text-xs">上傳教材或成績檔案後，點擊執行即可於此檢視 AI 產出</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      )}
 
-        {/* Right Mode Toggle & Key Settings */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Dual Mode Switcher (Guiding vs Direct) */}
-          <div className="flex items-center gap-2 p-1.5 bg-slate-950 rounded-xl border border-slate-800">
-            <button
-              onClick={() => setMode('guiding')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                mode === 'guiding'
-                  ? 'bg-[#E50914] text-white shadow-md shadow-red-950/50'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Lightbulb className="w-3.5 h-3.5" />
-              <span>提示引導模式 (預設)</span>
-            </button>
-            <button
-              onClick={() => setMode('direct')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                mode === 'direct'
-                  ? 'bg-amber-600 text-white shadow-md shadow-amber-950/50'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>直接解答模式</span>
-            </button>
-          </div>
-
-          {/* BYOK Settings Trigger */}
-          <button
-            onClick={() => setShowKeyModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition"
-          >
-            <Key className="w-3.5 h-3.5 text-[#E50914]" />
-            <span>{apiKey ? '金鑰已配置' : '配置 BYOK 金鑰'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Sub-tabs: Live Chat vs Notes Extractor */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-        <button
-          onClick={() => setActiveSubTab('chat')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition ${
-            activeSubTab === 'chat'
-              ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
-          }`}
-        >
-          <Bot className="w-4 h-4" />
-          <span>AI 即時雙模式對話</span>
-        </button>
-        <button
-          onClick={() => setActiveSubTab('extract')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition ${
-            activeSubTab === 'extract'
-              ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>自動萃取教材與考古題重點</span>
-        </button>
-      </div>
-
-      {/* Mode Status Callout */}
-      <div
-        className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
-          mode === 'guiding'
-            ? 'bg-red-950/30 border-red-900/50 text-red-200'
-            : 'bg-amber-950/30 border-amber-900/50 text-amber-200'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          {mode === 'guiding' ? (
-            <Lightbulb className="w-4 h-4 text-[#E50914] shrink-0" />
-          ) : (
-            <CheckCircle className="w-4 h-4 text-amber-400 shrink-0" />
-          )}
-          <span>
-            {mode === 'guiding'
-              ? '【提示引導模式】：AI 將啟發引導思考，分解邏輯步驟，不直接爆雷答案。'
-              : '【直接解答模式】：AI 將直接輸出完整正確解答、詳細推導與完整程式碼。'}
-          </span>
-        </div>
-        <button
-          onClick={() => setMode(mode === 'guiding' ? 'direct' : 'guiding')}
-          className="underline font-bold hover:text-white ml-2 whitespace-nowrap"
-        >
-          切換為{mode === 'guiding' ? '直接解答' : '提示引導'}
-        </button>
-      </div>
-
-      {/* Sub-Tab 1: Interactive Chat */}
+      {/* SUB-TAB 1: Interactive Chat (Mode Switcher & BYOK located BELOW input bar) */}
       {activeSubTab === 'chat' && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Main Chat Box (3 cols) */}
-          <div className="lg:col-span-3 flex flex-col h-[600px] rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-xl">
+          <div className="lg:col-span-3 flex flex-col h-[620px] rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-xl">
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto netflix-scrollbar p-4 space-y-4">
               {messages.map((m) => (
@@ -231,7 +391,9 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
                 >
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      m.role === 'user' ? 'bg-[#E50914] text-white' : 'bg-slate-800 text-red-400 border border-slate-700'
+                      m.role === 'user'
+                        ? 'bg-[#E50914] text-white'
+                        : 'bg-slate-800 text-red-400 border border-slate-700'
                     }`}
                   >
                     {m.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -262,14 +424,14 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
                     <Bot className="w-4 h-4 animate-spin" />
                   </div>
                   <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
-                    AI 導師正在組織思路與解析概念中...
+                    AI 正在組織思路中...
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Input Bar */}
-            <div className="p-3 bg-slate-950 border-t border-slate-800">
+            {/* Chat Input Bar + Mode Switcher & BYOK Controls Directly BELOW */}
+            <div className="p-3.5 bg-slate-950 border-t border-slate-800 space-y-2.5">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -281,28 +443,67 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
                   type="text"
                   value={inputPrompt}
                   onChange={(e) => setInputPrompt(e.target.value)}
-                  placeholder="輸入課業疑惑、程式碼問題或考題概念 (例如：TCP 交握、動態規劃 DP 推導)..."
+                  placeholder="輸入課業疑惑、程式碼問題或考題概念..."
                   disabled={isGenerating}
                   className="flex-1 px-4 py-2.5 text-xs md:text-sm bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
                 />
                 <button
                   type="submit"
                   disabled={isGenerating || !inputPrompt.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-[#E50914] hover:bg-red-600 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-red-950/50"
+                  className="px-5 py-2.5 rounded-xl bg-[#E50914] hover:bg-red-600 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 transition"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>送出</span>
                 </button>
               </form>
+
+              {/* Mode Switcher & BYOK Trigger relocated BELOW input box */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setMode('guiding')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      mode === 'guiding'
+                        ? 'bg-[#E50914] text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    <span>提示引導模式</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('direct')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      mode === 'direct'
+                        ? 'bg-amber-600 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>直接解答模式</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl transition"
+                >
+                  <Key className="w-3.5 h-3.5 text-[#E50914]" />
+                  <span>{apiKey ? '金鑰已配置' : '配置 BYOK 金鑰'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Quick Starters Panel (1 col) */}
+          {/* Quick Starters */}
           <div className="space-y-4">
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
               <h4 className="text-xs font-bold text-white flex items-center gap-1.5 mb-3">
                 <Lightbulb className="w-4 h-4 text-amber-400" />
-                <span>朝陽熱門課業引導問答</span>
+                <span>熱門提問範例</span>
               </h4>
               <div className="space-y-2">
                 {sampleQuestions.map((q, idx) => (
@@ -316,22 +517,14 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
                 ))}
               </div>
             </div>
-
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-red-950/40 to-slate-900 border border-red-900/50 text-xs">
-              <div className="font-bold text-red-300 mb-1">💡 雙模式運用建議</div>
-              <p className="text-slate-400 leading-relaxed text-[11px]">
-                平日複習請開啟<strong>「提示引導模式」</strong>，能鍛鍊程式與數學思維；考前一小時抱佛腳或除錯卡關時，再開啟<strong>「直接解答模式」</strong>快速掌握正解。
-              </p>
-            </div>
           </div>
         </div>
       )}
 
-      {/* Sub-Tab 2: Notes & Past Exam Extractor */}
+      {/* SUB-TAB 2: Notes & Past Exam Extractor */}
       {activeSubTab === 'extract' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Input Source Document */}
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col h-[560px]">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col h-[540px]">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <FileText className="w-4 h-4 text-[#E50914]" />
@@ -340,19 +533,19 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
               <button
                 onClick={() =>
                   setExtractInput(
-                    `計算機網路期中考古題重點題型：\n1. Explain the differences between TCP and UDP protocols. When to use UDP?\n2. What is the role of ARP (Address Resolution Protocol)? How does it resolve IP to MAC address?\n3. Describe Go-Back-N (GBN) vs Selective Repeat (SR) sliding window ARQ mechanisms.\n4. Calculate the throughput of a CSMA/CD network with 1 Gbps transmission rate.`
+                    `計算機網路期中考古題重點：\n1. Explain the differences between TCP and UDP protocols.\n2. What is ARP? How does it resolve IP to MAC?\n3. Describe Go-Back-N vs Selective Repeat.`
                   )
                 }
-                className="text-[11px] text-[#E50914] font-semibold hover:underline"
+                className="text-xs text-[#E50914] font-semibold hover:underline"
               >
-                帶入考古題範例
+                帶入範例
               </button>
             </div>
 
             <textarea
               value={extractInput}
               onChange={(e) => setExtractInput(e.target.value)}
-              placeholder="在此貼上講義段落、Tronclass 作業題目、教授投影片筆記或期中考題..."
+              placeholder="在此貼上講義段落、作業題目或期中考題..."
               className="flex-1 p-3.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white font-mono leading-relaxed resize-none focus:outline-none focus:border-[#E50914]"
             />
 
@@ -360,25 +553,24 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
               <button
                 onClick={handleExtractNotes}
                 disabled={isExtracting || !extractInput.trim()}
-                className="px-6 py-2.5 rounded-xl bg-[#E50914] hover:bg-red-600 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-red-950/50"
+                className="px-6 py-2.5 rounded-xl bg-[#E50914] hover:bg-red-600 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-2 transition"
               >
                 <Sparkles className={`w-3.5 h-3.5 ${isExtracting ? 'animate-spin' : ''}`} />
-                <span>{isExtracting ? 'AI 深度萃取中...' : '自動生成精華筆記與考點'}</span>
+                <span>{isExtracting ? '萃取中...' : '自動生成精華筆記與考點'}</span>
               </button>
             </div>
           </div>
 
-          {/* Extracted Output Result */}
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col h-[560px]">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col h-[540px]">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span>AI 萃取結構化成果 (精華卡片)</span>
+                <span>AI 萃取結果</span>
               </h3>
               {extractResult && (
                 <button
                   onClick={handleCopyResult}
-                  className="flex items-center gap-1 text-[11px] text-slate-300 hover:text-white bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700"
+                  className="flex items-center gap-1 text-xs text-slate-300 hover:text-white bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700"
                 >
                   {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   <span>{copied ? '已複製' : '複製筆記'}</span>
@@ -386,16 +578,13 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto netflix-scrollbar p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs leading-relaxed whitespace-pre-wrap font-sans">
+            <div className="flex-1 overflow-y-auto netflix-scrollbar p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs leading-relaxed whitespace-pre-wrap">
               {extractResult ? (
                 extractResult
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center">
                   <BookOpen className="w-8 h-8 mb-2 opacity-40 text-[#E50914]" />
-                  <span>左側貼入文字後，點擊「自動生成精華筆記」</span>
-                  <span className="text-[11px] text-slate-600 mt-1">
-                    系統將自動萃取：核心觀念矩陣、期中必考陷阱與高頻閃卡題
-                  </span>
+                  <span>左側貼入內容後點擊生成</span>
                 </div>
               )}
             </div>
@@ -409,10 +598,10 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
           <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
               <Key className="w-5 h-5 text-[#E50914]" />
-              <span>學生 BYOK 金鑰設定</span>
+              <span>BYOK 金鑰設定</span>
             </h3>
             <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-              Campus Life CYUT 秉持自備金鑰 (Bring Your Own Key) 原則。您的 API Key 僅儲存於個人瀏覽器 LocalStorage，不會外傳任何伺服器。
+              您的 Google Gemini API Key 僅儲存於個人瀏覽器 LocalStorage，不會上傳至第三方伺服器。
             </p>
 
             <div className="space-y-4">
@@ -427,15 +616,6 @@ export const AITutorView: React.FC<AITutorViewProps> = ({ apiKey, onSaveApiKey }
                   placeholder="AIzaSy..."
                   className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white font-mono focus:outline-none focus:border-[#E50914]"
                 />
-              </div>
-
-              <div className="text-[11px] text-slate-400 bg-slate-950 p-3 rounded-lg border border-slate-800">
-                📌 如何取得免費 Gemini API Key：
-                <ol className="list-decimal list-inside mt-1 space-y-0.5 text-slate-300">
-                  <li>前往 Google AI Studio (aistudio.google.com)</li>
-                  <li>使用 Google 帳號登入並點擊「Get API Key」</li>
-                  <li>複製貼入此處即可無限制對話與萃取重點</li>
-                </ol>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

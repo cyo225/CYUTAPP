@@ -1,50 +1,59 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Coupon, StudentProfile, RepairTicket } from '../types';
-import { 
-  Gift, 
-  Flame, 
-  Ticket, 
-  ShoppingBag, 
-  Store, 
-  Award, 
-  CheckCircle2, 
-  Tag, 
-  Wrench, 
-  Sparkles, 
-  Plus, 
+import { Coupon, MerchantStore, RepairTicket, StudentProfile } from '../types';
+import {
+  Gift,
+  Flame,
+  Ticket,
+  Store,
   AlertTriangle,
   QrCode,
   X,
-  Coins
+  MapPin,
+  Phone,
+  Clock,
+  ExternalLink,
+  Sparkles,
+  Wrench,
+  Plus,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 interface RewardsMarketHubProps {
   profile: StudentProfile;
+  merchants: MerchantStore[];
   userCoupons: Coupon[];
   marketplaceCoupons: Coupon[];
   repairTickets: RepairTicket[];
-  onCheckIn: () => void;
+  onOpenCheckInModal: () => void;
   onDrawMysteryBox: () => Coupon;
   onListCouponForSale: (couponId: string, salePrice: number) => boolean;
   onBuyMarketCoupon: (coupon: Coupon) => boolean;
   onNavigateToRepair: () => void;
 }
 
+const LOTTERY_COST = 2000;
+
 export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
   profile,
+  merchants,
   userCoupons,
   marketplaceCoupons,
   repairTickets,
-  onCheckIn,
+  onOpenCheckInModal,
   onDrawMysteryBox,
   onListCouponForSale,
   onBuyMarketCoupon,
   onNavigateToRepair,
 }) => {
-  const [activeTab, setActiveTab] = useState<'mystery-box' | 'my-coupons' | 'c2c-market' | 'tasks'>('mystery-box');
+  // Default view: Partner Merchants List ('merchants')
+  const [activeTab, setActiveTab] = useState<'merchants' | 'lottery' | 'my-coupons' | 'c2c-market' | 'tasks'>('merchants');
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPrize, setDrawnPrize] = useState<Coupon | null>(null);
+  const [drawError, setDrawError] = useState<string | null>(null);
+
+  // Lightbox for Merchant Menu Image
+  const [menuPreviewModal, setMenuPreviewModal] = useState<{ title: string; image: string } | null>(null);
 
   // C2C Resale listing modal
   const [selectedListingCoupon, setSelectedListingCoupon] = useState<Coupon | null>(null);
@@ -54,49 +63,32 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
   // Active coupon QR modal
   const [activeQrCoupon, setActiveQrCoupon] = useState<Coupon | null>(null);
 
-  const streakDays = [
-    { day: 1, points: 20, reward: '20 點' },
-    { day: 2, points: 25, reward: '25 點' },
-    { day: 3, points: 30, reward: '30 點 + 抽獎券' },
-    { day: 4, points: 35, reward: '35 點' },
-    { day: 5, points: 40, reward: '40 點' },
-    { day: 6, points: 50, reward: '50 點 + 抽獎券' },
-    { day: 7, points: 80, reward: '80 點 + 必中盲盒' },
-  ];
-
-  const handlePerformCheckIn = () => {
-    onCheckIn();
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#E50914', '#FF4D4D', '#FFD700', '#FFFFFF'],
-    });
-  };
+  const todayStr = new Date().toISOString().split('T')[0];
+  const checkedInToday = profile.lastCheckInDate === todayStr;
 
   const handleDrawBox = () => {
-    if (profile.points < 50) {
-      alert('點數不足！每次抽取美食盲盒需 50 點，請透過簽到或教室報修獲取。');
+    if (profile.points < LOTTERY_COST) {
+      setDrawError(`點數不足！每次抽優惠券需要 ${LOTTERY_COST.toLocaleString()} 點（目前僅有 ${profile.points.toLocaleString()} 點）。`);
       return;
     }
 
+    setDrawError(null);
     setIsDrawing(true);
     setTimeout(() => {
       const prize = onDrawMysteryBox();
       setDrawnPrize(prize);
       setIsDrawing(false);
       confetti({
-        particleCount: 120,
-        spread: 90,
+        particleCount: 110,
+        spread: 85,
         origin: { y: 0.5 },
         colors: ['#E50914', '#FFD700', '#10B981'],
       });
-    }, 1500);
+    }, 1200);
   };
 
   const handleOpenListModal = (cp: Coupon) => {
     setSelectedListingCoupon(cp);
-    // Set default price to exactly 90% of original value (safe)
     const safePrice = Math.floor(cp.originalValue * 0.85);
     setResalePrice(safePrice);
     setResaleError(null);
@@ -123,196 +115,326 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
   };
 
   return (
-    <div className="space-y-8">
-      {/* Points & Daily Check-in Hero Section */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-[#0B0F17] via-[#1A2234] to-[#0B0F17] border border-slate-800 shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-800">
-          <div>
-            <span className="text-xs font-bold text-[#E50914] tracking-widest uppercase">
-              朝陽科大校園點數中心 · REWARDS HUB
+    <div className="space-y-6">
+      {/* Compact Top Bar: Daily Check-In Entry (Left) & Real-Time Available Points (Top-Right) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 md:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-lg">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={onOpenCheckInModal}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-md ${
+              checkedInToday
+                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                : 'bg-[#E50914] hover:bg-red-600 text-white shadow-red-950/50 active:scale-95'
+            }`}
+          >
+            <Flame className={`w-4 h-4 ${checkedInToday ? 'text-amber-400' : 'text-white'}`} />
+            <span>
+              {checkedInToday
+                ? `今日已簽到 · 連續 ${profile.streakDays} 天`
+                : '每日簽到領點數（7天循環）'}
             </span>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-white mt-1">
-              每日簽到加碼 & 美食盲盒抽獎
-            </h2>
-            <p className="text-xs md:text-sm text-slate-400 mt-1">
-              持續簽到累積加成倍率；透過「教室報修與公共回饋」任務快速累積點數，抽取霧峰合作商圈美食折價券。
-            </p>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-4 bg-slate-900/90 p-3.5 px-5 rounded-2xl border border-slate-700/80 shadow-lg">
-            <div>
-              <div className="text-[11px] text-slate-400 font-semibold">目前可用點數</div>
-              <div className="text-2xl md:text-3xl font-black text-amber-400 font-mono tabular-nums">
-                {profile.points} <span className="text-xs font-sans text-slate-400">PTS</span>
-              </div>
-            </div>
-            <div className="h-10 w-px bg-slate-800" />
-            <div>
-              <div className="text-[11px] text-slate-400 font-semibold">美食抽獎券</div>
-              <div className="text-xl md:text-2xl font-bold text-[#E50914] font-mono tabular-nums">
-                {profile.lotteryTickets} <span className="text-xs font-sans text-slate-400">張</span>
-              </div>
-            </div>
-          </div>
+          <span className="text-xs text-slate-400">
+            特約合作商家 · 滿 <span className="font-mono text-white">2,000</span> 點可抽優惠券
+          </span>
         </div>
 
-        {/* 7-Day Streak Timeline */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-[#E50914]" />
-              <span className="text-xs font-bold text-white">
-                連續簽到進度：已達 {profile.streakDays} 天
-              </span>
+        {/* Top-Right Real-Time Available Points */}
+        <div className="flex items-center justify-between sm:justify-end gap-4 bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800 shrink-0">
+          <div className="text-right">
+            <div className="text-[11px] text-slate-400 font-medium">目前可用點數</div>
+            <div className="text-xl font-black text-amber-400 font-mono tabular-nums leading-tight">
+              {profile.points.toLocaleString()} <span className="text-xs font-sans text-slate-400">PTS</span>
             </div>
-            <button
-              onClick={handlePerformCheckIn}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#E50914] hover:bg-red-600 text-white shadow-lg shadow-red-950/60 active:scale-95 transition"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>今日簽到領取點數</span>
-            </button>
           </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
-            {streakDays.map((s) => {
-              const isPassed = s.day <= profile.streakDays;
-              const isToday = s.day === profile.streakDays + 1;
-
-              return (
-                <div
-                  key={s.day}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    isPassed
-                      ? 'bg-red-950/30 border-red-800/80 text-white'
-                      : isToday
-                      ? 'bg-slate-900 border-[#E50914] text-white ring-1 ring-[#E50914]'
-                      : 'bg-slate-950/50 border-slate-900 text-slate-500'
-                  }`}
-                >
-                  <div className="text-[11px] font-bold text-slate-400">第 {s.day} 天</div>
-                  <div className="text-sm font-black text-amber-400 font-mono mt-1">
-                    +{s.points}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-1 truncate">{s.reward}</div>
-                  {isPassed && (
-                    <div className="text-[10px] text-emerald-400 font-bold mt-1">✓ 已領取</div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="h-8 w-px bg-slate-800" />
+          <div className="text-right">
+            <div className="text-[11px] text-slate-400 font-medium">我的票券</div>
+            <div className="text-base font-bold text-[#E50914] font-mono tabular-nums leading-tight">
+              {userCoupons.length} <span className="text-xs font-sans text-slate-400">張</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Sub-Tabs: Mystery Box vs My Coupons vs C2C Market vs Tasks */}
+      {/* Separated Function Navigation Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto netflix-scrollbar border-b border-slate-800 pb-2">
         <button
-          onClick={() => setActiveTab('mystery-box')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-lg whitespace-nowrap transition ${
-            activeTab === 'mystery-box'
+          onClick={() => setActiveTab('merchants')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'merchants'
               ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Gift className="w-4 h-4" />
-          <span>美食盲盒抽獎</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('my-coupons')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-lg whitespace-nowrap transition ${
-            activeTab === 'my-coupons'
-              ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Ticket className="w-4 h-4" />
-          <span>我的優惠券夾 ({userCoupons.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('c2c-market')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-lg whitespace-nowrap transition ${
-            activeTab === 'c2c-market'
-              ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
           }`}
         >
           <Store className="w-4 h-4" />
-          <span>C2C 優惠券二級市場 (最高95折)</span>
+          <span>合作商家資訊 ({merchants.filter((m) => m.paid).length})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('lottery')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'lottery'
+              ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+          }`}
+        >
+          <Gift className="w-4 h-4" />
+          <span>抽優惠券 (2000 點)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('my-coupons')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'my-coupons'
+              ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+          }`}
+        >
+          <Ticket className="w-4 h-4" />
+          <span>查看我的優惠券 ({userCoupons.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('c2c-market')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'c2c-market'
+              ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+          }`}
+        >
+          <Store className="w-4 h-4" />
+          <span>二級轉售市集</span>
+        </button>
+
         <button
           onClick={() => setActiveTab('tasks')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-lg whitespace-nowrap transition ${
+          className={`flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-bold rounded-xl whitespace-nowrap transition ${
             activeTab === 'tasks'
               ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
           }`}
         >
           <Wrench className="w-4 h-4" />
-          <span>成就任務 (教室報修)</span>
+          <span>教室報修任務</span>
         </button>
       </div>
 
-      {/* Tab 1: Food Mystery Box */}
-      {activeTab === 'mystery-box' && (
+      {/* DEFAULT VIEW: Partner Merchants Directory */}
+      {activeTab === 'merchants' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {merchants
+            .filter((m) => m.paid)
+            .map((merchant) => {
+              const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                merchant.address
+              )}`;
+
+              return (
+                <div
+                  key={merchant.id}
+                  className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-xl flex flex-col justify-between hover:border-slate-700 transition"
+                >
+                  <div>
+                    {/* Merchant Cover Photo (or clean fallback) */}
+                    {merchant.coverImage ? (
+                      <div className="relative h-48 w-full bg-slate-950 overflow-hidden">
+                        <img
+                          src={merchant.coverImage}
+                          alt={merchant.name}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent" />
+                      </div>
+                    ) : (
+                      <div className="h-32 w-full bg-gradient-to-br from-slate-800 to-slate-950 flex flex-col items-center justify-center text-slate-500">
+                        <Store className="w-8 h-8 mb-1 opacity-50" />
+                        <span className="text-xs">{merchant.name}</span>
+                      </div>
+                    )}
+
+                    <div className="p-5 space-y-3">
+                      <div>
+                        <div className="text-xs text-slate-400">{merchant.category}</div>
+                        <h3 className="text-lg font-extrabold text-white mt-0.5">
+                          {merchant.name}
+                        </h3>
+                      </div>
+
+                      <div className="space-y-2 text-xs text-slate-300">
+                        {/* Address -> Click opens Google Maps Navigation */}
+                        <a
+                          href={googleMapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-start gap-2 text-slate-200 hover:text-[#E50914] transition group"
+                          title="點擊開啟 Google Map 導航"
+                        >
+                          <MapPin className="w-4 h-4 text-[#E50914] shrink-0 mt-0.5" />
+                          <span className="underline decoration-slate-700 group-hover:decoration-[#E50914]">
+                            {merchant.address}（開啟 Google Map 導航）
+                          </span>
+                        </a>
+
+                        {/* Phone */}
+                        <a
+                          href={`tel:${merchant.phone}`}
+                          className="flex items-center gap-2 text-slate-300 hover:text-white font-mono"
+                        >
+                          <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span>{merchant.phone}</span>
+                        </a>
+
+                        {/* Business Hours (Auto-hidden if empty) */}
+                        {merchant.businessHours && (
+                          <div className="flex items-center gap-2 text-slate-300">
+                            <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                            <span>{merchant.businessHours}</span>
+                          </div>
+                        )}
+
+                        {/* Latest Promo (Auto-hidden if empty) */}
+                        {merchant.latestPromo && (
+                          <div className="flex items-start gap-2 text-amber-300 pt-1">
+                            <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span>{merchant.latestPromo}</span>
+                          </div>
+                        )}
+
+                        {/* Website (Auto-hidden if empty) */}
+                        {merchant.website && (
+                          <a
+                            href={merchant.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sky-400 hover:text-sky-300 transition"
+                          >
+                            <ExternalLink className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{merchant.website}</span>
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Menu Image (Auto-hidden if empty) */}
+                      {merchant.menuImage && (
+                        <div className="pt-3 border-t border-slate-800/90">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+                              <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                              <span>店家菜單圖片</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMenuPreviewModal({
+                                  title: `${merchant.name} · 菜單`,
+                                  image: merchant.menuImage!,
+                                })
+                              }
+                              className="text-[11px] font-bold text-[#E50914] hover:underline"
+                            >
+                              點擊放大檢視
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMenuPreviewModal({
+                                title: `${merchant.name} · 菜單`,
+                                image: merchant.menuImage!,
+                              })
+                            }
+                            className="w-full overflow-hidden rounded-xl border border-slate-800 hover:border-slate-600 transition"
+                          >
+                            <img
+                              src={merchant.menuImage}
+                              alt={`${merchant.name} 菜單`}
+                              className="w-full h-28 object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      )}
+
+      {/* TAB 2: Dedicated Coupon Lottery Page (2000 Points Threshold) */}
+      {activeTab === 'lottery' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Mystery Box Machine */}
-          <div className="lg:col-span-7 p-8 rounded-3xl bg-slate-900 border border-slate-800 text-center relative overflow-hidden">
+          <div className="lg:col-span-7 p-8 rounded-3xl bg-slate-900 border border-slate-800 text-center">
             <div className="max-w-md mx-auto space-y-4">
-              <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-[#E50914] to-red-500 flex items-center justify-center text-white shadow-2xl shadow-red-900/60 animate-pulse">
-                <Gift className="w-12 h-12" />
+              <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-[#E50914] to-red-500 flex items-center justify-center text-white shadow-xl shadow-red-950/50">
+                <Gift className="w-10 h-10" />
               </div>
 
-              <h3 className="text-xl font-black text-white">朝陽美食幸運盲盒機</h3>
+              <h3 className="text-xl font-black text-white">合作商家優惠券抽獎機</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                消耗 <strong className="text-amber-400 font-mono">50 點數</strong> 或 1 張抽獎券，隨機抽取第一學餐、第二學餐、波浪廣場路易莎或霧峰老街合作商家折價券！
+                每次抽獎需消耗{' '}
+                <strong className="text-amber-400 font-mono tabular-nums">
+                  {LOTTERY_COST.toLocaleString()} 點數
+                </strong>
+                ，隨機抽出合作商家折價券或飲品兌換券！
               </p>
 
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
-                <div className="font-bold text-slate-200 mb-2">🎁 本期合作特賞清單：</div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-left">
-                  <div>· 晨曦手搖飲 全品項折 $15</div>
-                  <div>· 路易莎咖啡 拿鐵大杯 8 折</div>
-                  <div>· 霧峰老街肉圓 套餐折 $20</div>
-                  <div>· 綠漾舒肥輕食 便當現折 $25</div>
+              {/* Progress toward 2000 points */}
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-left space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">抽獎點數進度</span>
+                  <span className="font-mono font-bold text-amber-400 tabular-nums">
+                    {profile.points.toLocaleString()} / {LOTTERY_COST.toLocaleString()} PTS
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#E50914] rounded-full transition-all"
+                    style={{ width: `${Math.min(100, (profile.points / LOTTERY_COST) * 100)}%` }}
+                  />
                 </div>
               </div>
+
+              {drawError && (
+                <div className="p-3 rounded-xl bg-red-950/60 border border-red-800 text-xs text-red-200 flex items-center gap-2 text-left">
+                  <AlertTriangle className="w-4 h-4 text-[#E50914] shrink-0" />
+                  <span>{drawError}</span>
+                </div>
+              )}
 
               <button
                 onClick={handleDrawBox}
                 disabled={isDrawing}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 via-[#E50914] to-red-600 hover:from-red-500 hover:to-red-500 text-white font-extrabold text-base shadow-xl shadow-red-950/80 active:scale-98 transition disabled:opacity-50"
+                className="w-full py-4 rounded-2xl bg-[#E50914] hover:bg-red-600 text-white font-extrabold text-sm shadow-xl shadow-red-950/60 active:scale-[0.98] transition disabled:opacity-50"
               >
-                {isDrawing ? '🎰 盲盒抽取中...' : '🎲 消耗 50 點數抽取美食盲盒'}
+                {isDrawing ? '抽取優惠券中...' : `消耗 ${LOTTERY_COST.toLocaleString()} 點抽取優惠券`}
               </button>
             </div>
           </div>
 
-          {/* Drawn Prize Card / Showcase */}
-          <div className="lg:col-span-5 p-6 rounded-3xl bg-gradient-to-b from-slate-900 to-[#161F30] border border-slate-800">
+          <div className="lg:col-span-5 p-6 rounded-3xl bg-slate-900 border border-slate-800">
             <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>最新抽取成果</span>
+              <span>本次抽獎結果</span>
             </h4>
 
             {drawnPrize ? (
-              <div className="p-5 rounded-2xl bg-slate-950 border border-red-900/60 shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800">
-                    恭喜中獎！
-                  </span>
-                  <span className="text-xs font-mono text-amber-400 font-bold">
+              <div className="p-5 rounded-2xl bg-slate-950 border border-red-900/60 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-emerald-400 font-bold">恭喜獲得優惠券</span>
+                  <span className="font-mono text-amber-400 font-bold">
                     價值 NT$ {drawnPrize.originalValue}
                   </span>
                 </div>
-
                 <h4 className="text-base font-black text-white">{drawnPrize.title}</h4>
                 <div className="text-xs text-slate-300">{drawnPrize.storeName}</div>
-                <div className="text-xs text-slate-400 leading-relaxed">
-                  {drawnPrize.discountDescription}
-                </div>
+                <div className="text-xs text-slate-400">{drawnPrize.discountDescription}</div>
 
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
                   <span className="text-[11px] font-mono text-slate-500">
                     券號: {drawnPrize.code}
                   </span>
@@ -320,99 +442,97 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
                     onClick={() => setActiveQrCoupon(drawnPrize)}
                     className="text-xs font-bold text-[#E50914] hover:underline"
                   >
-                    查看出示 QR Code
+                    出示 QR Code
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="h-64 flex flex-col items-center justify-center text-slate-500 text-center text-xs">
-                <Ticket className="w-10 h-10 mb-2 text-slate-600 opacity-60" />
-                <span>尚未抽取盲盒</span>
-                <span className="text-[11px] text-slate-600 mt-1">
-                  點擊左側「抽取美食盲盒」試試手氣！
-                </span>
+              <div className="h-56 flex flex-col items-center justify-center text-slate-500 text-center text-xs">
+                <Ticket className="w-10 h-10 mb-2 opacity-50" />
+                <span>點擊左側按鈕消耗 2,000 點進行抽獎</span>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Tab 2: My Coupons */}
+      {/* TAB 3: Dedicated My Coupons Page */}
       {activeTab === 'my-coupons' && (
         <div className="space-y-4">
           <div className="text-xs text-slate-400">
-            點擊「出示條碼」可於店面結帳折抵；若暫時用不到，可點擊「上架二級市場」轉售給其他朝陽同學（售價限制不可超過 95%）。
+            點擊「出示」可於合作商家結帳折抵；未使用的優惠券可上架至二級市場轉讓（售價上限為原價值 95%）。
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {userCoupons.map((cp) => (
-              <div
-                key={cp.id}
-                className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">
-                      {cp.storeName}
-                    </span>
-                    <span className="text-xs font-mono font-bold text-amber-400">
-                      原價 NT$ {cp.originalValue}
-                    </span>
+          {userCoupons.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 text-xs">
+              目前尚未擁有任何優惠券，累積滿 2,000 點即可前往「抽優惠券」試試手氣。
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {userCoupons.map((cp) => (
+                <div
+                  key={cp.id}
+                  className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition"
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                      <span className="font-semibold text-slate-300 truncate">{cp.storeName}</span>
+                      <span className="font-mono font-bold text-amber-400 shrink-0">
+                        價值 NT$ {cp.originalValue}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-white mt-1">{cp.title}</h4>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      {cp.discountDescription}
+                    </p>
                   </div>
 
-                  <h4 className="text-sm font-bold text-white mt-1">{cp.title}</h4>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    {cp.discountDescription}
-                  </p>
-                </div>
+                  <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+                    <span className="text-[11px] font-mono text-slate-500">
+                      效期至 {cp.expiryDate}
+                    </span>
 
-                <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-slate-500">效期至 {cp.expiryDate}</span>
-
-                  <div className="flex items-center gap-2">
-                    {cp.isListedForSale ? (
-                      <span className="text-xs font-bold text-amber-400">已上架中 (NT$ {cp.salePrice})</span>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleOpenListModal(cp)}
-                          className="px-2.5 py-1 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
-                        >
-                          轉售
-                        </button>
-                        <button
-                          onClick={() => setActiveQrCoupon(cp)}
-                          className="px-3 py-1 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition flex items-center gap-1"
-                        >
-                          <QrCode className="w-3 h-3" />
-                          <span>出示</span>
-                        </button>
-                      </>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {cp.isListedForSale ? (
+                        <span className="text-xs font-bold text-amber-400">
+                          已上架 (NT$ {cp.salePrice})
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleOpenListModal(cp)}
+                            className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
+                          >
+                            轉售
+                          </button>
+                          <button
+                            onClick={() => setActiveQrCoupon(cp)}
+                            className="px-3 py-1.5 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition flex items-center gap-1"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>出示</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Tab 3: C2C Secondary Coupon Marketplace */}
+      {/* TAB 4: C2C Secondary Coupon Marketplace */}
       {activeTab === 'c2c-market' && (
         <div className="space-y-4">
           <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-bold text-white flex items-center gap-2">
-                <Store className="w-4 h-4 text-[#E50914]" />
-                <span>CYUT 學生二級優惠券交換市集</span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                嚴格遵循校規防黃牛規範：所有二級轉售價格<strong>「不得超過原價值之 95%」</strong>，系統自動檢核保障買賣雙方。
-              </p>
+            <div className="text-xs text-slate-300">
+              學生二級優惠券交換市集 · 轉售價嚴格限制不得超過原價值 95%
             </div>
-
             <div className="text-xs text-amber-400 font-mono font-bold">
-              最高折價限制：≤ 95%
+              轉售價上限：≤ 95%
             </div>
           </div>
 
@@ -426,18 +546,12 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
                   className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition flex flex-col justify-between"
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">
-                        {mkt.storeName}
-                      </span>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-                        {discountRatio} 折轉讓
-                      </span>
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="text-slate-300 font-semibold">{mkt.storeName}</span>
+                      <span className="font-bold text-emerald-400">{discountRatio} 折</span>
                     </div>
-
-                    <h4 className="text-sm font-bold text-white mt-1">{mkt.title}</h4>
+                    <h4 className="text-sm font-bold text-white">{mkt.title}</h4>
                     <p className="text-xs text-slate-400 mt-1">{mkt.discountDescription}</p>
-
                     <div className="text-[11px] text-slate-400 mt-2">
                       轉售同學：<span className="text-slate-200">{mkt.sellerName}</span>
                     </div>
@@ -445,7 +559,9 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
 
                   <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="text-[10px] text-slate-500 line-through">原價 NT$ {mkt.originalValue}</div>
+                      <div className="text-[10px] text-slate-500 line-through">
+                        原價 NT$ {mkt.originalValue}
+                      </div>
                       <div className="text-base font-black text-amber-400 font-mono">
                         NT$ {mkt.salePrice}
                       </div>
@@ -453,7 +569,7 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
 
                     <button
                       onClick={() => onBuyMarketCoupon(mkt)}
-                      className="px-4 py-2 text-xs font-bold bg-[#E50914] hover:bg-red-600 text-white rounded-xl shadow-md transition active:scale-95"
+                      className="px-4 py-2 text-xs font-bold bg-[#E50914] hover:bg-red-600 text-white rounded-xl transition active:scale-95"
                     >
                       購買搶收
                     </button>
@@ -465,23 +581,19 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
         </div>
       )}
 
-      {/* Tab 4: Achievement Tasks (Strictly Classroom Repair & Public Feedback) */}
+      {/* TAB 5: Classroom Repair Tasks */}
       {activeTab === 'tasks' && (
-        <div className="space-y-6">
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+        <div className="space-y-4">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-[#E50914]" />
-                <span>成就任務：僅保留「教室報修 / 公共回饋」</span>
-              </h3>
+              <h3 className="text-base font-bold text-white">教室報修與公共回饋任務</h3>
               <p className="text-xs text-slate-400 mt-1">
-                依校務規章，日常點數成就純粹依賴實質校園公德貢獻（報修投影機、冷氣、桌椅問題），每筆完成確認即獲 50 點！
+                通報教室設備問題經受理即可獲得 +50 點獎勵。
               </p>
             </div>
-
             <button
               onClick={onNavigateToRepair}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#E50914] text-white rounded-xl hover:bg-red-600 transition shadow-lg shadow-red-950/50"
+              className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold bg-[#E50914] text-white rounded-xl hover:bg-red-600 transition whitespace-nowrap"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>通報教室報修</span>
@@ -495,27 +607,21 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
                 className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white">{t.building} {t.classroom}</span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        t.status === 'resolved'
-                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                          : 'bg-amber-950 text-amber-300 border border-amber-800'
-                      }`}
-                    >
-                      {t.status === 'resolved' ? '已修復完畢' : '總務處檢修中'}
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-bold text-white">
+                      {t.building} {t.classroom}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span className={t.status === 'resolved' ? 'text-emerald-400' : 'text-amber-400'}>
+                      {t.status === 'resolved' ? '已修復' : '檢修中'}
                     </span>
                   </div>
                   <div className="text-xs text-slate-300 mt-1">{t.description}</div>
-                  <div className="text-[10px] text-slate-500 font-mono mt-1">通報時間: {t.timestamp}</div>
+                  <div className="text-[10px] text-slate-500 font-mono mt-1">{t.timestamp}</div>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <div className="text-xs font-bold text-amber-400 font-mono">
-                    +{t.pointsAwarded} PTS
-                  </div>
-                  <div className="text-[10px] text-slate-400">公共貢獻成就獎勵</div>
+                <div className="text-xs font-bold text-amber-400 font-mono shrink-0">
+                  +{t.pointsAwarded} PTS
                 </div>
               </div>
             ))}
@@ -523,7 +629,36 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
         </div>
       )}
 
-      {/* C2C Resale Listing Modal with Hard <= 95% Limit Validation */}
+      {/* Menu Image Zoom Modal */}
+      {menuPreviewModal && (
+        <div
+          onClick={() => setMenuPreviewModal(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl rounded-2xl bg-slate-900 border border-slate-800 p-4 shadow-2xl space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white">{menuPreviewModal.title}</h4>
+              <button
+                onClick={() => setMenuPreviewModal(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <img
+              src={menuPreviewModal.image}
+              alt={menuPreviewModal.title}
+              className="w-full max-h-[75vh] object-contain rounded-xl bg-slate-950"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* C2C Resale Listing Modal */}
       {selectedListingCoupon && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl">
@@ -537,10 +672,10 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
               </button>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 mb-4">
-              <div className="text-xs font-bold text-white">{selectedListingCoupon.title}</div>
-              <div className="text-xs text-slate-400 mt-0.5">{selectedListingCoupon.storeName}</div>
-              <div className="text-xs text-amber-400 font-mono mt-1">
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 mb-4 text-xs">
+              <div className="font-bold text-white">{selectedListingCoupon.title}</div>
+              <div className="text-slate-400 mt-0.5">{selectedListingCoupon.storeName}</div>
+              <div className="text-amber-400 font-mono mt-1">
                 原票面價值：NT$ {selectedListingCoupon.originalValue}
               </div>
             </div>
@@ -563,11 +698,7 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
                   className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-800 rounded-lg text-white font-mono focus:outline-none focus:border-[#E50914]"
                 />
                 <div className="text-[11px] text-slate-400 mt-1">
-                  🔒 嚴格規範：轉售價最高不得超過原價值 95%（上限 NT${' '}
-                  <strong className="text-amber-400 font-mono">
-                    {Math.floor(selectedListingCoupon.originalValue * 0.95)}
-                  </strong>
-                  ）
+                  上限 NT$ {Math.floor(selectedListingCoupon.originalValue * 0.95)}（原價 95%）
                 </div>
               </div>
 
@@ -590,7 +721,7 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
                   type="submit"
                   className="px-5 py-2 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
                 >
-                  確認上架市集
+                  確認上架
                 </button>
               </div>
             </form>
@@ -605,7 +736,6 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
             <h3 className="text-base font-bold text-white">{activeQrCoupon.title}</h3>
             <p className="text-xs text-slate-400 mt-1">{activeQrCoupon.storeName}</p>
 
-            {/* Simulated Clean SVG Barcode / QR */}
             <div className="my-6 p-4 bg-white rounded-2xl mx-auto w-52 h-52 flex flex-col items-center justify-center shadow-inner">
               <QrCode className="w-36 h-36 text-slate-900" />
               <div className="text-[10px] font-mono text-slate-700 tracking-wider mt-1">
@@ -613,9 +743,7 @@ export const RewardsMarketHub: React.FC<RewardsMarketHubProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 mb-6">
-              結帳時出示此 QR Code 即可享有折抵優惠
-            </p>
+            <p className="text-xs text-slate-300 mb-6">結帳時出示此 QR Code 即可折抵</p>
 
             <button
               onClick={() => setActiveQrCoupon(null)}

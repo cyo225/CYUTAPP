@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
-import { SocialPost, SocialCategory, StudentProfile } from '../types';
-import { 
-  Users, 
-  MessageSquare, 
-  Heart, 
-  Share2, 
-  Plus, 
-  EyeOff, 
-  UserCheck, 
-  BookOpen, 
-  Tag, 
-  Send,
+import { SocialAttachment, SocialCategory, SocialPost, StudentProfile } from '../types';
+import {
+  MessageSquare,
+  Heart,
+  Share2,
+  Plus,
+  EyeOff,
+  UserCheck,
   X,
-  Compass,
-  Smile
+  ImagePlus,
+  Paperclip,
+  Download,
+  FileText,
 } from 'lucide-react';
 
 interface SocialHubProps {
   profile: StudentProfile;
   posts: SocialPost[];
-  onAddPost: (post: Omit<SocialPost, 'id' | 'timestamp' | 'likes' | 'commentsCount' | 'comments'>) => void;
+  onAddPost: (
+    post: Omit<SocialPost, 'id' | 'timestamp' | 'likes' | 'commentsCount' | 'comments'>
+  ) => void;
   onLikePost: (postId: string) => void;
   onAddComment: (postId: string, text: string) => void;
 }
@@ -32,7 +32,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({
   onAddComment,
 }) => {
   const [activeCategory, setActiveCategory] = useState<SocialCategory | 'all'>('all');
-  const [isAnonymousMode, setIsAnonymousMode] = useState(true); // Default to anonymous as requested
+  const [isAnonymousMode, setIsAnonymousMode] = useState(true); // Default to anonymous
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // New post form state
@@ -42,24 +42,66 @@ export const SocialHub: React.FC<SocialHubProps> = ({
   const [newTag, setNewTag] = useState('');
   const [newPrice, setNewPrice] = useState<number | undefined>(undefined);
   const [newItemCondition, setNewItemCondition] = useState('');
+  const [newImages, setNewImages] = useState<string[]>([]);
+  const [newAttachments, setNewAttachments] = useState<SocialAttachment[]>([]);
 
   // Active commenting post id
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
   const [commentInput, setCommentInput] = useState('');
+  const [shareCopiedId, setShareCopiedId] = useState<string | null>(null);
 
   const categories = [
     { id: 'all', label: '全部動態' },
     { id: 'feed', label: '朝陽朋友圈' },
-    { id: 'department', label: '系所分類社群' },
+    { id: 'department', label: '系所社群' },
     { id: 'mixer', label: '聯誼揪團' },
     { id: 'club', label: '社團專區' },
-    { id: 'exchange', label: '二手書與教材考古題' },
+    { id: 'exchange', label: '二手書與教材' },
   ];
 
   const filteredPosts = posts.filter((p) => {
     if (activeCategory === 'all') return true;
     return p.category === activeCategory;
   });
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setNewImages((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const sizeLabel =
+          file.size >= 1024 * 1024
+            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+            : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+        setNewAttachments((prev) => [
+          ...prev,
+          {
+            id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            name: file.name,
+            size: sizeLabel,
+            mimeType: file.type || 'application/octet-stream',
+            dataUrl: typeof reader.result === 'string' ? reader.result : undefined,
+          },
+        ]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
 
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,10 +118,17 @@ export const SocialHub: React.FC<SocialHubProps> = ({
       tag: newTag || (newCategory === 'exchange' ? '二手教材' : '校園動態'),
       price: newCategory === 'exchange' ? newPrice : undefined,
       itemCondition: newCategory === 'exchange' ? newItemCondition : undefined,
+      images: newImages.length > 0 ? newImages : undefined,
+      attachments: newAttachments.length > 0 ? newAttachments : undefined,
     });
 
     setNewTitle('');
     setNewContent('');
+    setNewTag('');
+    setNewPrice(undefined);
+    setNewItemCondition('');
+    setNewImages([]);
+    setNewAttachments([]);
     setShowCreateModal(false);
   };
 
@@ -90,55 +139,44 @@ export const SocialHub: React.FC<SocialHubProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header & Identity Switcher */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-[#1A2234] border border-slate-800">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#E50914]" />
-            <span>朝陽科大社交朋友圈 & 學生交流圈</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            系所熱門話題、聯誼組隊、社團活動宣傳，以及學長姐二手書與歷屆考古題無私傳承。
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Identity Switcher Toggle */}
-          <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
-            <span className="text-xs text-slate-300 font-semibold">發文身分:</span>
-            <button
-              onClick={() => setIsAnonymousMode(false)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                !isAnonymousMode
-                  ? 'bg-slate-800 text-white border border-slate-700'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>實名 ({profile.name || '學生'})</span>
-            </button>
-            <button
-              onClick={() => setIsAnonymousMode(true)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                isAnonymousMode
-                  ? 'bg-[#E50914] text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <EyeOff className="w-3.5 h-3.5" />
-              <span>匿名身份</span>
-            </button>
-          </div>
-
+    <div className="space-y-5">
+      {/* Streamlined Top Bar: Identity Switcher + Publish Button ONLY */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#E50914] text-white rounded-xl hover:bg-red-600 transition shadow-lg shadow-red-950/60"
+            type="button"
+            onClick={() => setIsAnonymousMode(true)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition ${
+              isAnonymousMode
+                ? 'bg-[#E50914] text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>發布動態/教材</span>
+            <EyeOff className="w-3.5 h-3.5" />
+            <span>匿名身分</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsAnonymousMode(false)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition ${
+              !isAnonymousMode
+                ? 'bg-slate-800 text-white border border-slate-700'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>實名 ({profile.name || '使用者'})</span>
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold bg-[#E50914] text-white rounded-xl hover:bg-red-600 transition shadow-lg shadow-red-950/50"
+        >
+          <Plus className="w-4 h-4" />
+          <span>發布動態</span>
+        </button>
       </div>
 
       {/* Category Tabs Filter */}
@@ -146,8 +184,8 @@ export const SocialHub: React.FC<SocialHubProps> = ({
         {categories.map((c) => (
           <button
             key={c.id}
-            onClick={() => setActiveCategory(c.id as any)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
+            onClick={() => setActiveCategory(c.id as SocialCategory | 'all')}
+            className={`px-3.5 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
               activeCategory === c.id
                 ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
                 : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
@@ -162,7 +200,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({
       <div className="space-y-4">
         {filteredPosts.length === 0 ? (
           <div className="p-12 text-center rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 text-xs">
-            此分類目前沒有最新貼文。點擊右上角「發布動態/教材」發表第一篇！
+            此分類目前沒有動態，點擊「發布動態」可同時文字、上傳照片與附加檔案！
           </div>
         ) : (
           filteredPosts.map((post) => (
@@ -171,64 +209,102 @@ export const SocialHub: React.FC<SocialHubProps> = ({
               className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700/80 transition shadow-lg"
             >
               {/* Post Author Info */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
+                    className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                       post.isAnonymous
                         ? 'bg-slate-800 text-slate-400 border border-slate-700'
-                        : 'bg-gradient-to-tr from-red-600 to-[#E50914] text-white'
+                        : 'bg-[#E50914] text-white'
                     }`}
                   >
                     {post.isAnonymous ? '匿' : post.authorName.charAt(0)}
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>{post.authorName}</span>
-                      {post.isAnonymous && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
-                          匿名
-                        </span>
-                      )}
+                    <div className="text-xs font-bold text-white">{post.authorName}</div>
+                    <div className="text-[11px] text-slate-400">
+                      {post.authorDept}
+                      {post.tag ? ` · #${post.tag}` : ''}
                     </div>
-                    <div className="text-[10px] text-slate-400">{post.authorDept}</div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {post.tag && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-950/60 border border-red-900/80 text-red-300 font-semibold">
-                      #{post.tag}
-                    </span>
-                  )}
-                  <span className="text-[11px] font-mono text-slate-500">{post.timestamp}</span>
-                </div>
+                <span className="text-[11px] font-mono text-slate-500">{post.timestamp}</span>
               </div>
 
-              {/* Title & Content (Horizontal, spacious modern layout) */}
-              <h3 className="text-base font-bold text-white mt-3 text-left w-full break-words tracking-normal">
+              {/* Horizontal Clean Title & Body */}
+              <h3 className="text-base font-bold text-white mt-3 text-left w-full break-words">
                 {post.title}
               </h3>
-              <p className="text-sm text-slate-300 mt-2 text-left w-full break-words leading-relaxed whitespace-pre-wrap font-sans">
+              <p className="text-sm text-slate-300 mt-2 text-left w-full break-words leading-relaxed whitespace-pre-wrap">
                 {post.content}
               </p>
 
-              {/* Special Exchange Details (Textbook / Past Exam) */}
+              {/* Uploaded Photos Gallery */}
+              {post.images && post.images.length > 0 && (
+                <div
+                  className={`mt-3 grid gap-2 ${
+                    post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+                  }`}
+                >
+                  {post.images.map((imgSrc, i) => (
+                    <img
+                      key={i}
+                      src={imgSrc}
+                      alt={`${post.title} 附圖 ${i + 1}`}
+                      className="w-full max-h-72 object-cover rounded-xl border border-slate-800 bg-slate-950"
+                      referrerPolicy="no-referrer"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Uploaded File Attachments */}
+              {post.attachments && post.attachments.length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                  {post.attachments.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="w-4 h-4 text-[#E50914] shrink-0" />
+                        <span className="text-slate-200 font-medium truncate">{file.name}</span>
+                        <span className="text-slate-500 font-mono text-[11px] shrink-0">
+                          {file.size}
+                        </span>
+                      </div>
+                      {file.dataUrl && (
+                        <a
+                          href={file.dataUrl}
+                          download={file.name}
+                          className="flex items-center gap-1 text-[#E50914] hover:underline font-semibold shrink-0 ml-2"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>下載</span>
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Special Exchange Details */}
               {post.category === 'exchange' && post.price !== undefined && (
                 <div className="mt-3 p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between w-full">
-                  <div className="text-left">
-                    <span className="text-xs text-slate-400">書況/說明：</span>
-                    <span className="text-xs font-semibold text-slate-200 ml-1">
+                  <div className="text-xs text-slate-400">
+                    書況說明：
+                    <span className="font-semibold text-slate-200 ml-1">
                       {post.itemCondition || '二手完好'}
                     </span>
                   </div>
                   <div className="text-base font-black text-amber-400 font-mono">
-                    售 NT$ {post.price}
+                    NT$ {post.price}
                   </div>
                 </div>
               )}
 
-              {/* Actions & Comment Trigger */}
+              {/* Actions */}
               <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
                 <div className="flex items-center gap-4">
                   <button
@@ -253,10 +329,17 @@ export const SocialHub: React.FC<SocialHubProps> = ({
                 </div>
 
                 <button
-                  onClick={() => alert('已複製貼文分享連結！')}
-                  className="hover:text-white transition"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(window.location.href);
+                    setShareCopiedId(post.id);
+                    setTimeout(() => setShareCopiedId(null), 1800);
+                  }}
+                  className="flex items-center gap-1 hover:text-white transition"
                 >
                   <Share2 className="w-4 h-4" />
+                  {shareCopiedId === post.id && (
+                    <span className="text-[11px] text-emerald-400">已複製</span>
+                  )}
                 </button>
               </div>
 
@@ -265,7 +348,10 @@ export const SocialHub: React.FC<SocialHubProps> = ({
                 <div className="mt-4 pt-3 border-t border-slate-800 space-y-3">
                   <div className="space-y-2">
                     {post.comments.map((c) => (
-                      <div key={c.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 text-xs">
+                      <div
+                        key={c.id}
+                        className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 text-xs"
+                      >
                         <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
                           <span className="text-white">{c.author}</span>
                           <span className="font-mono text-[10px] text-slate-600">{c.time}</span>
@@ -275,7 +361,6 @@ export const SocialHub: React.FC<SocialHubProps> = ({
                     ))}
                   </div>
 
-                  {/* Comment Input */}
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -298,12 +383,14 @@ export const SocialHub: React.FC<SocialHubProps> = ({
         )}
       </div>
 
-      {/* Create Post Modal */}
+      {/* Create Post Modal (Supports Simultaneous Photo + File Uploads) */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl my-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-white">發表校園動態 / 交流分享</h3>
+              <h3 className="text-base font-bold text-white">
+                發布動態（{isAnonymousMode ? '匿名身分' : `實名：${profile.name}`}）
+              </h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-white"
@@ -320,11 +407,11 @@ export const SocialHub: React.FC<SocialHubProps> = ({
                   onChange={(e) => setNewCategory(e.target.value as SocialCategory)}
                   className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white"
                 >
-                  <option value="feed">朝陽朋友圈 (日常動態)</option>
-                  <option value="department">系所分類社群 (課程與選修)</option>
-                  <option value="mixer">聯誼揪團 (活動與約跑)</option>
-                  <option value="club">社團專區 (活動招募)</option>
-                  <option value="exchange">二手書及教材考古題分享</option>
+                  <option value="feed">朝陽朋友圈</option>
+                  <option value="department">系所社群</option>
+                  <option value="mixer">聯誼揪團</option>
+                  <option value="club">社團專區</option>
+                  <option value="exchange">二手書與教材考古題</option>
                 </select>
               </div>
 
@@ -335,29 +422,100 @@ export const SocialHub: React.FC<SocialHubProps> = ({
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="輸入簡潔有吸引力的標題..."
+                  placeholder="輸入貼文標題..."
                   className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-[#E50914]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">詳細內容</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">內容</label>
                 <textarea
                   rows={4}
                   required
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  placeholder="分享你的想法、活動細節或教材介紹..."
+                  placeholder="分享校園心得、活動資訊或筆記說明..."
                   className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-[#E50914] resize-none"
                 />
               </div>
 
-              {/* Conditional Inputs for Textbook Exchange */}
+              {/* Simultaneous Photo + File Uploads */}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-950 border border-dashed border-slate-700 hover:border-[#E50914] cursor-pointer text-xs text-slate-300 transition">
+                  <ImagePlus className="w-4 h-4 text-[#E50914]" />
+                  <span>上傳照片 ({newImages.length})</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                <label className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-950 border border-dashed border-slate-700 hover:border-amber-400 cursor-pointer text-xs text-slate-300 transition">
+                  <Paperclip className="w-4 h-4 text-amber-400" />
+                  <span>附加檔案 ({newAttachments.length})</span>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleAttachmentUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Selected Photo & File Previews */}
+              {newImages.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {newImages.map((src, idx) => (
+                    <div key={idx} className="relative w-16 h-16 shrink-0">
+                      <img
+                        src={src}
+                        alt={`預覽照片 ${idx + 1}`}
+                        className="w-full h-full object-cover rounded-lg border border-slate-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewImages((prev) => prev.filter((_, i) => i !== idx))}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#E50914] text-white flex items-center justify-center text-[10px]"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {newAttachments.length > 0 && (
+                <div className="space-y-1">
+                  {newAttachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs"
+                    >
+                      <span className="truncate text-slate-300">
+                        {att.name} ({att.size})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setNewAttachments((prev) => prev.filter((a) => a.id !== att.id))
+                        }
+                        className="text-slate-500 hover:text-red-400 ml-2"
+                      >
+                        移除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {newCategory === 'exchange' && (
                 <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      轉讓價格 (NT$)
+                      價格 (NT$)
                     </label>
                     <input
                       type="number"
@@ -375,7 +533,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({
                       type="text"
                       value={newItemCondition}
                       onChange={(e) => setNewItemCondition(e.target.value)}
-                      placeholder="例如：9成新有筆記"
+                      placeholder="例如：9成新"
                       className="w-full px-3 py-1.5 text-xs bg-slate-900 border border-slate-800 rounded text-white"
                     />
                   </div>

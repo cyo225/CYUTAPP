@@ -1,21 +1,15 @@
 import React, { useState } from 'react';
 import { Course, TodoItem, TodoType } from '../types';
-import { 
-  Calendar, 
-  Clock, 
-  CheckCircle2, 
-  Circle, 
-  FileText, 
-  AlertCircle, 
-  ExternalLink, 
-  Plus, 
-  Key, 
-  RefreshCw, 
-  BookOpen, 
-  Sparkles,
-  MapPin,
-  HelpCircle,
-  Filter
+import {
+  Calendar,
+  CheckCircle2,
+  Circle,
+  ExternalLink,
+  Plus,
+  Key,
+  RefreshCw,
+  Columns,
+  List,
 } from 'lucide-react';
 
 interface AcademicHubProps {
@@ -26,7 +20,6 @@ interface AcademicHubProps {
   onUpdateTronclassToken: (token: string) => void;
   onToggleTodo: (todoId: string) => void;
   onAddTodo: (todo: Omit<TodoItem, 'id' | 'completed'>) => void;
-  onInspectClassroom: (classroomCode: string) => void;
 }
 
 export const AcademicHub: React.FC<AcademicHubProps> = ({
@@ -37,9 +30,10 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
   onUpdateTronclassToken,
   onToggleTodo,
   onAddTodo,
-  onInspectClassroom,
 }) => {
-  const [selectedDay, setSelectedDay] = useState<number>(1); // Mon-Fri
+  // View toggle: 'matrix' (五天一起顯示) vs 'daily' (一天一天詳細顯示)
+  const [timetableView, setTimetableView] = useState<'matrix' | 'daily'>('matrix');
+  const [selectedDay, setSelectedDay] = useState<number>(1);
   const [todoFilter, setTodoFilter] = useState<TodoType | 'all'>('all');
   const [isEditingToken, setIsEditingToken] = useState(false);
   const [inputToken, setInputToken] = useState(tronclassToken || '');
@@ -54,11 +48,11 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
   const [newUrgent, setNewUrgent] = useState(false);
 
   const days = [
-    { num: 1, label: '週一 Mon' },
-    { num: 2, label: '週二 Tue' },
-    { num: 3, label: '週三 Wed' },
-    { num: 4, label: '週四 Thu' },
-    { num: 5, label: '週五 Fri' },
+    { num: 1, short: '週一', label: '週一 Mon' },
+    { num: 2, short: '週二', label: '週二 Tue' },
+    { num: 3, short: '週三', label: '週三 Wed' },
+    { num: 4, short: '週四', label: '週四 Thu' },
+    { num: 5, short: '週五', label: '週五 Fri' },
   ];
 
   const periods = [
@@ -72,7 +66,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
     { period: 8, time: '16:20 - 17:10' },
   ];
 
-  const filteredTodos = todos.filter(t => {
+  const filteredTodos = todos.filter((t) => {
     if (todoFilter === 'all') return true;
     return t.type === todoFilter;
   });
@@ -81,7 +75,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
     setIsSyncing(true);
     setTimeout(() => {
       setIsSyncing(false);
-    }, 1200);
+    }, 1000);
   };
 
   const handleSaveToken = () => {
@@ -99,7 +93,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
       type: newType,
       dueDate: newDueDate,
       urgent: newUrgent,
-      pointsReward: 20,
+      pointsReward: 5, // Uniformly 5 points per assignment/task
     });
     setNewTitle('');
     setShowAddModal(false);
@@ -107,177 +101,204 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Header & Tronclass API Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-[#1A2234] border border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#E50914] flex items-center justify-center text-white font-bold">
-              T
-            </div>
-            <h2 className="text-xl font-bold text-white">智慧教務中心 & Tronclass 暢通同步</h2>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            支援學生自備 Tronclass 個人存取 Token 或帳號密碼進行課表、作業與考古題自動爬取同步。
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                tronclassConnected ? 'bg-emerald-500' : 'bg-slate-500'
-              }`}
-            />
-            <span className="text-xs text-slate-300 font-medium">
-              {tronclassConnected ? 'Tronclass 已連線' : '尚未連結 API Token'}
-            </span>
-          </div>
-
-          <button
-            onClick={() => setIsEditingToken(!isEditingToken)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition"
-          >
-            <Key className="w-3.5 h-3.5 text-[#E50914]" />
-            <span>自備 Token 設定</span>
-          </button>
-
-          <button
-            onClick={handleSyncTronclass}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-[#E50914] hover:bg-red-600 text-white rounded-lg transition shadow-md shadow-red-950/40 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? '同步中...' : '即刻重新抓取'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tronclass Token Input Box */}
-      {isEditingToken && (
-        <div className="p-4 rounded-xl bg-slate-900/90 border border-red-900/60 shadow-lg">
-          <div className="text-xs font-bold text-white mb-2">輸入 Tronclass 個人授權 Token / 學生 Session：</div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputToken}
-              onChange={(e) => setInputToken(e.target.value)}
-              placeholder="貼上 tronclass_jwt_token 或連線 Cookie..."
-              className="flex-1 px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-[#E50914]"
-            />
-            <button
-              onClick={handleSaveToken}
-              className="px-4 py-2 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
-            >
-              儲存並驗證
-            </button>
-          </div>
-          <div className="text-[11px] text-slate-400 mt-2">
-            💡 提示：點擊上方「🚀 一鍵帶入測試帳號/資料」會自動配置一組有效的 CYUT 測試金鑰與課程。
-          </div>
-        </div>
-      )}
-
-      {/* Main Grid: Left Timetable, Right Unified To-Do Queue */}
+      {/* Main Grid: Timetable + Unified To-Do Queue */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left: Weekly Timetable (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[#E50914]" />
-              <h3 className="text-lg font-bold text-white">每週智慧課表矩陣</h3>
+              <h3 className="text-lg font-bold text-white">每週課表</h3>
             </div>
-            <span className="text-xs text-slate-400">點擊教室代碼可在 3D 地圖中定位</span>
-          </div>
 
-          {/* Day Tabs */}
-          <div className="flex gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
-            {days.map((d) => (
+            {/* View Switcher: 5-Day Matrix vs Day-by-Day Detailed */}
+            <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
               <button
-                key={d.num}
-                onClick={() => setSelectedDay(d.num)}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                  selectedDay === d.num
-                    ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
+                type="button"
+                onClick={() => setTimetableView('matrix')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition whitespace-nowrap ${
+                  timetableView === 'matrix'
+                    ? 'bg-[#E50914] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                {d.label}
+                <Columns className="w-3.5 h-3.5" />
+                <span>五天一起顯示</span>
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setTimetableView('daily')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition whitespace-nowrap ${
+                  timetableView === 'daily'
+                    ? 'bg-[#E50914] text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>逐日詳細顯示</span>
+              </button>
+            </div>
           </div>
 
-          {/* Timetable Period List for Selected Day */}
-          <div className="space-y-2.5">
-            {periods.map((p) => {
-              const dayCourses = courses.filter(
-                (c) => c.dayOfWeek === selectedDay && p.period >= c.startPeriod && p.period <= c.endPeriod
-              );
-              const course = dayCourses[0];
-
-              return (
-                <div
-                  key={p.period}
-                  className={`flex items-center p-3 rounded-xl border transition-all ${
-                    course
-                      ? 'bg-slate-900/90 border-slate-700/80 hover:border-slate-600'
-                      : 'bg-slate-950/40 border-slate-900'
-                  }`}
-                >
-                  {/* Period Time Slot */}
-                  <div className="w-20 md:w-24 shrink-0 text-left border-r border-slate-800 pr-3">
-                    <div className="text-xs font-bold text-white">第 {p.period} 節</div>
-                    <div className="text-[10px] font-mono text-slate-500 tabular-nums">{p.time}</div>
-                  </div>
-
-                  {/* Course Details or Free Period */}
-                  <div className="pl-4 flex-1">
-                    {course ? (
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: course.color }}
-                            />
-                            <h4 className="text-sm font-bold text-white">{course.name}</h4>
-                            <span className="text-[10px] font-mono text-slate-400">({course.code})</span>
-                          </div>
-                          <div className="text-xs text-slate-400 mt-0.5">
-                            教授：{course.professor} · 學分：{course.credits}
-                          </div>
+          {timetableView === 'matrix' ? (
+            /* 5-Day Matrix View */
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 overflow-x-auto netflix-scrollbar">
+              <table className="w-full min-w-[600px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-950/80">
+                    <th className="p-2.5 text-[11px] font-bold text-slate-400 w-20">節次</th>
+                    {days.map((d) => (
+                      <th
+                        key={d.num}
+                        className="p-2.5 text-xs font-bold text-slate-200 text-center border-l border-slate-800/80"
+                      >
+                        {d.short}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {periods.map((p) => (
+                    <tr key={p.period} className="border-b border-slate-800/70 last:border-b-0">
+                      <td className="p-2.5 align-top bg-slate-950/40">
+                        <div className="text-xs font-bold text-white">第 {p.period} 節</div>
+                        <div className="text-[10px] font-mono tabular-nums text-slate-500">
+                          {p.time}
                         </div>
+                      </td>
+                      {days.map((d) => {
+                        const course = courses.find(
+                          (c) =>
+                            c.dayOfWeek === d.num &&
+                            p.period >= c.startPeriod &&
+                            p.period <= c.endPeriod
+                        );
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => onInspectClassroom(course.classroom)}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono font-bold text-amber-400 border border-slate-700 transition"
-                            title="在 3D 校園地圖檢視教室"
+                        return (
+                          <td
+                            key={d.num}
+                            className="p-1.5 border-l border-slate-800/80 align-top min-w-[96px]"
                           >
-                            <MapPin className="w-3 h-3 text-[#E50914]" />
-                            <span>{course.classroom}</span>
-                          </button>
+                            {course ? (
+                              <div
+                                className="p-2 rounded-xl bg-slate-950/90 border border-slate-800 h-full"
+                                style={{ borderTopColor: course.color, borderTopWidth: '3px' }}
+                              >
+                                <div className="text-[11px] font-bold text-white leading-snug line-clamp-2">
+                                  {course.name}
+                                </div>
+                                <div className="text-[10px] font-mono text-amber-400 font-semibold mt-1">
+                                  {course.classroom}
+                                </div>
+                                <div className="text-[10px] text-slate-400 truncate">
+                                  {course.professor}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="h-12 flex items-center justify-center text-[10px] text-slate-700">
+                                —
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* Day-by-Day Detailed View */
+            <div className="space-y-4">
+              <div className="flex gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+                {days.map((d) => (
+                  <button
+                    key={d.num}
+                    onClick={() => setSelectedDay(d.num)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                      selectedDay === d.num
+                        ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
 
-                          {course.tronclassUrl && (
-                            <a
-                              href={course.tronclassUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
-                              title="開啟 Tronclass 課程專案"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          )}
+              <div className="space-y-2.5">
+                {periods.map((p) => {
+                  const dayCourses = courses.filter(
+                    (c) =>
+                      c.dayOfWeek === selectedDay &&
+                      p.period >= c.startPeriod &&
+                      p.period <= c.endPeriod
+                  );
+                  const course = dayCourses[0];
+
+                  return (
+                    <div
+                      key={p.period}
+                      className={`flex items-center p-3 rounded-xl border transition-all ${
+                        course
+                          ? 'bg-slate-900/90 border-slate-700/80'
+                          : 'bg-slate-950/40 border-slate-900'
+                      }`}
+                    >
+                      <div className="w-20 md:w-24 shrink-0 text-left border-r border-slate-800 pr-3">
+                        <div className="text-xs font-bold text-white">第 {p.period} 節</div>
+                        <div className="text-[10px] font-mono text-slate-500 tabular-nums">
+                          {p.time}
                         </div>
                       </div>
-                    ) : (
-                      <div className="text-xs text-slate-600 italic">無課程安排 (自習與研究時段)</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+
+                      <div className="pl-4 flex-1">
+                        {course ? (
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="w-2 h-2 rounded-full shrink-0"
+                                  style={{ backgroundColor: course.color }}
+                                />
+                                <h4 className="text-sm font-bold text-white">{course.name}</h4>
+                                <span className="text-[10px] font-mono text-slate-400">
+                                  ({course.code})
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                {course.professor} · {course.credits} 學分 · {course.building}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-1 rounded bg-slate-800 text-xs font-mono font-bold text-amber-400 border border-slate-700">
+                                {course.classroom}
+                              </span>
+
+                              {course.tronclassUrl && (
+                                <a
+                                  href={course.tronclassUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                  title="開啟 Tronclass 課程"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-600">無課程安排</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Unified To-Do Queue (5 cols) */}
@@ -285,11 +306,11 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-[#E50914]" />
-              <h3 className="text-lg font-bold text-white">智慧待辦任務隊列</h3>
+              <h3 className="text-lg font-bold text-white">作業與待辦任務</h3>
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>新增任務</span>
@@ -297,64 +318,33 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
           </div>
 
           {/* Filter Bar */}
-          <div className="flex items-center gap-1 overflow-x-auto netflix-scrollbar pb-1">
-            <button
-              onClick={() => setTodoFilter('all')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition ${
-                todoFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              全部 ({todos.length})
-            </button>
-            <button
-              onClick={() => setTodoFilter('assignment')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition ${
-                todoFilter === 'assignment'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              作業
-            </button>
-            <button
-              onClick={() => setTodoFilter('quiz')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition ${
-                todoFilter === 'quiz'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              測驗小考
-            </button>
-            <button
-              onClick={() => setTodoFilter('past_exam')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition ${
-                todoFilter === 'past_exam'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              考古題
-            </button>
-            <button
-              onClick={() => setTodoFilter('material')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition ${
-                todoFilter === 'material'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              教材
-            </button>
+          <div className="flex items-center gap-1.5 overflow-x-auto netflix-scrollbar pb-1">
+            {[
+              { id: 'all', label: `全部 (${todos.length})` },
+              { id: 'assignment', label: '作業' },
+              { id: 'quiz', label: '測驗小考' },
+              { id: 'past_exam', label: '考古題' },
+              { id: 'material', label: '教材' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setTodoFilter(tab.id as TodoType | 'all')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+                  todoFilter === tab.id
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {/* Todo Items List */}
           <div className="space-y-2.5 max-h-[580px] overflow-y-auto netflix-scrollbar pr-1">
             {filteredTodos.length === 0 ? (
               <div className="p-8 text-center rounded-2xl bg-slate-900/50 border border-slate-800 text-slate-500 text-xs">
-                目前沒有待辦事項。點擊「新增任務」或右上角「一鍵帶入測試資料」載入完整項目。
+                目前沒有待辦事項。點擊「新增任務」建立項目，完成作業可獲得 +5 點數獎勵。
               </div>
             ) : (
               filteredTodos.map((todo) => {
@@ -388,15 +378,17 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                       </button>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <span className="font-semibold text-slate-300">
                             {typeLabels[todo.type]}
                           </span>
-                          <span className="text-xs text-slate-400 truncate">{todo.courseName}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="truncate">{todo.courseName}</span>
                           {todo.urgent && !todo.completed && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-red-950 text-red-400 border border-red-800">
-                              即將截止
-                            </span>
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span className="text-red-400 font-bold">即將截止</span>
+                            </>
                           )}
                         </div>
 
@@ -416,9 +408,9 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
 
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
                           <span className="font-mono tabular-nums">截止: {todo.dueDate}</span>
-                          {todo.pointsReward && !todo.completed && (
-                            <span className="text-amber-400 font-bold font-mono">
-                              +{todo.pointsReward} 積分獎勵
+                          {!todo.completed && (
+                            <span className="text-amber-400 font-bold font-mono tabular-nums">
+                              +5 點數獎勵
                             </span>
                           )}
                         </div>
@@ -430,6 +422,69 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Bottom Section: Tronclass Connection Status, Token Settings & Instant Sync */}
+      <div className="pt-6 border-t border-slate-800/90 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/75 border border-slate-800">
+          <div className="flex items-center gap-3">
+            <span
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                tronclassConnected ? 'bg-emerald-500' : 'bg-slate-500'
+              }`}
+            />
+            <div>
+              <div className="text-xs font-bold text-white">
+                {tronclassConnected ? 'Tronclass API 已連線' : 'Tronclass 尚未連結 API Token'}
+              </div>
+              <div className="text-[11px] text-slate-400">
+                可在此設定個人 Tronclass 授權 Token 並即時重新抓取最新課表與作業
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => setIsEditingToken(!isEditingToken)}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition"
+            >
+              <Key className="w-3.5 h-3.5 text-[#E50914]" />
+              <span>自備 Token 設定</span>
+            </button>
+
+            <button
+              onClick={handleSyncTronclass}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#E50914] hover:bg-red-600 text-white rounded-xl transition shadow-md shadow-red-950/40 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? '抓取同步中...' : '即時重新抓取'}</span>
+            </button>
+          </div>
+        </div>
+
+        {isEditingToken && (
+          <div className="p-4 rounded-xl bg-slate-900 border border-red-900/60 shadow-lg">
+            <div className="text-xs font-bold text-white mb-2">
+              輸入 Tronclass 個人授權 Token / 學生 Session：
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={inputToken}
+                onChange={(e) => setInputToken(e.target.value)}
+                placeholder="貼上 tronclass_jwt_token 或連線 Cookie..."
+                className="flex-1 px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-[#E50914]"
+              />
+              <button
+                onClick={handleSaveToken}
+                className="px-4 py-2 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
+              >
+                儲存並驗證
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Custom Todo Modal */}
@@ -517,7 +572,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                   type="submit"
                   className="px-5 py-2 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
                 >
-                  建立任務
+                  建立任務 (+5 點)
                 </button>
               </div>
             </form>
