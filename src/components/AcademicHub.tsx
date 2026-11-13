@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Course, TodoItem, TodoType } from '../types';
+import { CYUT_PERIODS } from '../utils/demoData';
 import {
   Calendar,
   CheckCircle2,
@@ -10,6 +11,9 @@ import {
   RefreshCw,
   Columns,
   List,
+  X,
+  MapPin,
+  Clock,
 } from 'lucide-react';
 
 interface AcademicHubProps {
@@ -39,6 +43,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
   const [inputToken, setInputToken] = useState(tronclassToken || '');
   const [isSyncing, setIsSyncing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
   // New todo form state
   const [newTitle, setNewTitle] = useState('');
@@ -48,23 +53,14 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
   const [newUrgent, setNewUrgent] = useState(false);
 
   const days = [
-    { num: 1, short: '週一', label: '週一 Mon' },
-    { num: 2, short: '週二', label: '週二 Tue' },
-    { num: 3, short: '週三', label: '週三 Wed' },
-    { num: 4, short: '週四', label: '週四 Thu' },
-    { num: 5, short: '週五', label: '週五 Fri' },
+    { num: 1, short: '一', desktopShort: '週一', label: '週一 Mon' },
+    { num: 2, short: '二', desktopShort: '週二', label: '週二 Tue' },
+    { num: 3, short: '三', desktopShort: '週三', label: '週三 Wed' },
+    { num: 4, short: '四', desktopShort: '週四', label: '週四 Thu' },
+    { num: 5, short: '五', desktopShort: '週五', label: '週五 Fri' },
   ];
 
-  const periods = [
-    { period: 1, time: '08:10 - 09:00' },
-    { period: 2, time: '09:10 - 10:00' },
-    { period: 3, time: '10:10 - 11:00' },
-    { period: 4, time: '11:10 - 12:00' },
-    { period: 5, time: '13:30 - 14:20' },
-    { period: 6, time: '14:25 - 15:15' },
-    { period: 7, time: '15:25 - 16:15' },
-    { period: 8, time: '16:20 - 17:10' },
-  ];
+  const periods = CYUT_PERIODS;
 
   const filteredTodos = todos.filter((t) => {
     if (todoFilter === 'all') return true;
@@ -141,71 +137,91 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
           </div>
 
           {timetableView === 'matrix' ? (
-            /* 5-Day Matrix View */
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 overflow-x-auto netflix-scrollbar">
-              <table className="w-full min-w-[600px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-slate-800 bg-slate-950/80">
-                    <th className="p-2.5 text-[11px] font-bold text-slate-400 w-20">節次</th>
-                    {days.map((d) => (
-                      <th
-                        key={d.num}
-                        className="p-2.5 text-xs font-bold text-slate-200 text-center border-l border-slate-800/80"
-                      >
-                        {d.short}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {periods.map((p) => (
-                    <tr key={p.period} className="border-b border-slate-800/70 last:border-b-0">
-                      <td className="p-2.5 align-top bg-slate-950/40">
-                        <div className="text-xs font-bold text-white">第 {p.period} 節</div>
-                        <div className="text-[10px] font-mono tabular-nums text-slate-500">
-                          {p.time}
-                        </div>
-                      </td>
-                      {days.map((d) => {
-                        const course = courses.find(
-                          (c) =>
-                            c.dayOfWeek === d.num &&
-                            p.period >= c.startPeriod &&
-                            p.period <= c.endPeriod
-                        );
+            /* 5-Day Matrix View: Strict Zero Horizontal Scroll on 375px-430px Phones */
+            <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/75 overflow-hidden shadow-lg">
+              {/* Header Row */}
+              <div className="grid grid-cols-[44px_repeat(5,minmax(0,1fr))] sm:grid-cols-[84px_repeat(5,minmax(0,1fr))] border-b border-slate-800 bg-slate-950/90">
+                <div className="py-2 px-1 sm:px-2.5 text-[10px] sm:text-[11px] font-bold text-slate-400 text-center flex items-center justify-center">
+                  節次
+                </div>
+                {days.map((d) => (
+                  <div
+                    key={d.num}
+                    className="py-2 px-0.5 sm:px-2 text-[11px] sm:text-xs font-bold text-slate-200 text-center border-l border-slate-800/80 flex items-center justify-center"
+                  >
+                    <span className="sm:hidden">週{d.short}</span>
+                    <span className="hidden sm:inline">{d.desktopShort}</span>
+                  </div>
+                ))}
+              </div>
 
-                        return (
-                          <td
-                            key={d.num}
-                            className="p-1.5 border-l border-slate-800/80 align-top min-w-[96px]"
-                          >
-                            {course ? (
-                              <div
-                                className="p-2 rounded-xl bg-slate-950/90 border border-slate-800 h-full"
-                                style={{ borderTopColor: course.color, borderTopWidth: '3px' }}
-                              >
-                                <div className="text-[11px] font-bold text-white leading-snug line-clamp-2">
-                                  {course.name}
-                                </div>
-                                <div className="text-[10px] font-mono text-amber-400 font-semibold mt-1">
+              {/* Period 1-9 Matrix Rows */}
+              <div>
+                {periods.map((p) => (
+                  <div
+                    key={p.period}
+                    className="grid grid-cols-[44px_repeat(5,minmax(0,1fr))] sm:grid-cols-[84px_repeat(5,minmax(0,1fr))] border-b border-slate-800/70 last:border-b-0"
+                  >
+                    {/* Period & Exact Time Column */}
+                    <div className="py-1.5 px-0.5 sm:px-2 bg-slate-950/50 flex flex-col items-center sm:items-start justify-center text-center sm:text-left">
+                      <div className="text-[10px] sm:text-xs font-bold text-white leading-tight">
+                        <span className="sm:hidden">{p.shortLabel}</span>
+                        <span className="hidden sm:inline">{p.label}</span>
+                      </div>
+                      <div className="text-[8px] sm:text-[10px] font-mono tabular-nums text-slate-500 leading-[1.15] mt-0.5">
+                        <span className="sm:hidden block">
+                          {p.start}
+                          <br />
+                          {p.end}
+                        </span>
+                        <span className="hidden sm:inline">{p.time}</span>
+                      </div>
+                    </div>
+
+                    {/* Mon-Fri Course Cells */}
+                    {days.map((d) => {
+                      const course = courses.find(
+                        (c) =>
+                          c.dayOfWeek === d.num &&
+                          p.period >= c.startPeriod &&
+                          p.period <= c.endPeriod
+                      );
+
+                      return (
+                        <div
+                          key={d.num}
+                          className="min-w-0 p-0.5 sm:p-1.5 border-l border-slate-800/80 flex items-stretch"
+                        >
+                          {course ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCourse(course)}
+                              className="w-full text-left p-1 sm:p-2 rounded-lg sm:rounded-xl bg-slate-950/90 border border-slate-800 hover:border-slate-600 transition flex flex-col justify-between overflow-hidden min-h-[50px]"
+                              style={{ borderTopColor: course.color, borderTopWidth: '3px' }}
+                            >
+                              <div className="text-[10px] sm:text-[11px] font-bold text-white leading-[1.2] break-words line-clamp-3">
+                                {course.name}
+                              </div>
+                              <div className="mt-1 space-y-0.5">
+                                <div className="text-[9px] sm:text-[10px] font-mono text-amber-400 font-semibold leading-tight truncate">
                                   {course.classroom}
                                 </div>
-                                <div className="text-[10px] text-slate-400 truncate">
+                                <div className="hidden sm:block text-[10px] text-slate-400 truncate">
                                   {course.professor}
                                 </div>
                               </div>
-                            ) : (
-                              <div className="h-12 flex items-center justify-center text-[10px] text-slate-700">
-                                —
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                            </button>
+                          ) : (
+                            <div className="w-full min-h-[48px] flex items-center justify-center text-[10px] text-slate-700">
+                              —
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             /* Day-by-Day Detailed View */
@@ -221,7 +237,8 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    {d.label}
+                    <span className="sm:hidden">週{d.short}</span>
+                    <span className="hidden sm:inline">{d.label}</span>
                   </button>
                 ))}
               </div>
@@ -245,9 +262,9 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                           : 'bg-slate-950/40 border-slate-900'
                       }`}
                     >
-                      <div className="w-20 md:w-24 shrink-0 text-left border-r border-slate-800 pr-3">
-                        <div className="text-xs font-bold text-white">第 {p.period} 節</div>
-                        <div className="text-[10px] font-mono text-slate-500 tabular-nums">
+                      <div className="w-24 sm:w-28 shrink-0 text-left border-r border-slate-800 pr-3">
+                        <div className="text-xs font-bold text-white">{p.label}</div>
+                        <div className="text-[10px] font-mono text-slate-500 tabular-nums mt-0.5">
                           {p.time}
                         </div>
                       </div>
@@ -576,6 +593,78 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Course Detail Quick-Inspect Modal (Great for Mobile Matrix Taps) */}
+      {selectedCourse && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+          onClick={() => setSelectedCourse(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-800 p-5 shadow-2xl space-y-4"
+            style={{ borderTopColor: selectedCourse.color, borderTopWidth: '4px' }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-mono text-slate-400">
+                  {selectedCourse.code} · {selectedCourse.credits} 學分
+                </div>
+                <h4 className="text-base font-bold text-white mt-0.5 leading-snug">
+                  {selectedCourse.name}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCourse(null)}
+                aria-label="關閉課程詳情"
+                className="min-h-[40px] min-w-[40px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-300 border-t border-slate-800 pt-3">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  {selectedCourse.building} · <strong className="font-mono text-amber-400">{selectedCourse.classroom}</strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#E50914] shrink-0" />
+                <span className="font-mono tabular-nums">
+                  週{['一', '二', '三', '四', '五'][selectedCourse.dayOfWeek - 1]} 第 {selectedCourse.startPeriod}-{selectedCourse.endPeriod} 節 ({selectedCourse.timeRange})
+                </span>
+              </div>
+              <div className="text-slate-400">
+                授課教師：{selectedCourse.professor}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              {selectedCourse.tronclassUrl && (
+                <a
+                  href={selectedCourse.tronclassUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#E50914] hover:bg-red-600 text-xs font-bold text-white transition"
+                >
+                  <span>前往 Tronclass</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedCourse(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition"
+              >
+                關閉
+              </button>
+            </div>
           </div>
         </div>
       )}

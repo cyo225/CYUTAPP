@@ -8,6 +8,7 @@ export type NavigationTab =
   | 'social'
   | 'campus-life'
   | 'campus-3d'
+  | 'transit'
   | 'merchant-portal';
 
 export type MerchantPlan = 'monthly' | 'quarterly' | 'yearly';
@@ -135,12 +136,40 @@ export interface SocialPost {
 }
 
 export interface BusRouteInfo {
+  id: string;
   route: string;
   destination: string;
+  direction: 'to_city' | 'to_campus';
+  directionLabel: string;
   stopName: string;
-  nextBusMinutes: number;
-  status: 'arriving' | 'approaching' | 'scheduled' | 'delayed';
+  areaTag: '校門口' | '宿舍區' | '校內站' | '吉峰路口';
+  nextBusMinutes: number; // -1 if unscheduled (未發車)
+  status: 'arriving' | 'approaching' | 'scheduled' | 'unscheduled' | 'delayed';
+  plateNumber?: string;
+  crowding: 'low' | 'medium' | 'high';
+  nextDepartureTime?: string;
   operatingHours: string;
+}
+
+export interface ShuttleSchedule {
+  id: string;
+  name: string;
+  routeSummary: string;
+  boardingStop: string;
+  peakInterval: string;
+  offPeakInterval: string;
+  firstBus: string;
+  lastBus: string;
+  note: string;
+}
+
+export interface TransferGuide {
+  id: string;
+  hubName: string;
+  recommendedRoutes: string[];
+  estimatedTime: string;
+  firstLastInfo: string;
+  tip: string;
 }
 
 export interface FloorRoomInfo {

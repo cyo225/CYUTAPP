@@ -29,6 +29,8 @@ import {
   DEMO_MARKETPLACE,
   DEMO_POSTS,
   DEMO_BUS_ROUTES,
+  DEMO_SHUTTLE_SCHEDULES,
+  DEMO_TRANSFER_GUIDES,
   DEMO_CAFETERIA,
   DEMO_LOCKERS,
   DEMO_LEAVE_RECORDS,
@@ -39,6 +41,8 @@ import { SplashScreen } from './components/SplashScreen';
 import { AuthGateway } from './components/AuthGateway';
 import { DailyCheckInModal } from './components/DailyCheckInModal';
 import { Navbar } from './components/Navbar';
+import { DrawerMenu } from './components/DrawerMenu';
+import { PublicTransitHub } from './components/PublicTransitHub';
 import { NetflixHeroBillboard } from './components/NetflixHeroBillboard';
 import { AcademicHub } from './components/AcademicHub';
 import { AITutorView } from './components/AITutorView';
@@ -80,6 +84,7 @@ const EMPTY_PROFILE: StudentProfile = {
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState<NavigationTab>('overview');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const [hasCheckedDailyPrompt, setHasCheckedDailyPrompt] = useState(false);
@@ -177,7 +182,13 @@ export default function App() {
 
   // Set default tab based on logged-in role
   useEffect(() => {
-    if (profile.isLoggedIn && profile.role === 'merchant' && activeTab !== 'merchant-portal' && activeTab !== 'rewards') {
+    if (
+      profile.isLoggedIn &&
+      profile.role === 'merchant' &&
+      activeTab !== 'merchant-portal' &&
+      activeTab !== 'rewards' &&
+      activeTab !== 'transit'
+    ) {
       setActiveTab('merchant-portal');
     }
   }, [profile.isLoggedIn, profile.role, activeTab]);
@@ -583,9 +594,19 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onOpenDrawer={() => setIsDrawerOpen(true)}
         profile={profile}
         onOpenAuth={() => setIsAuthOpen(true)}
         onLogout={handleLogout}
+      />
+
+      {/* Left Frosted Glass Expansion Drawer Menu */}
+      <DrawerMenu
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        profile={profile}
       />
 
       {/* Main Viewport Container */}
@@ -877,6 +898,26 @@ export default function App() {
               <p className="text-xs text-slate-400 text-center px-2">
                 高角度俯視全校 10 棟主要建築配置，點選任一大樓即可展開 3D 樓層透視剖面，自由旋轉縮放檢視各樓層教室與系所空間。
               </p>
+            </motion.div>
+          )}
+
+          {/* Public Transit System (Accessible via Top-Left Logo Drawer Menu) */}
+          {activeTab === 'transit' && (
+            <motion.div
+              key="transit"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PublicTransitHub
+                busRoutes={DEMO_BUS_ROUTES}
+                shuttleSchedules={DEMO_SHUTTLE_SCHEDULES}
+                transferGuides={DEMO_TRANSFER_GUIDES}
+                onBackHome={() =>
+                  setActiveTab(profile.role === 'merchant' ? 'merchant-portal' : 'overview')
+                }
+              />
             </motion.div>
           )}
         </AnimatePresence>

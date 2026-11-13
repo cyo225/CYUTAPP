@@ -219,11 +219,12 @@ export const CampusLifeHub: React.FC<CampusLifeHubProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {busData.map((bus) => {
-              const isImminent = bus.nextBusMinutes <= 2;
+              const isUnscheduled = bus.status === 'unscheduled' || bus.nextBusMinutes < 0;
+              const isImminent = !isUnscheduled && bus.nextBusMinutes <= 2;
 
               return (
                 <div
-                  key={bus.route}
+                  key={bus.id}
                   className={`p-5 rounded-2xl border transition-all ${
                     isImminent
                       ? 'bg-gradient-to-br from-red-950/40 to-slate-900 border-red-800/80'
@@ -239,10 +240,16 @@ export const CampusLifeHub: React.FC<CampusLifeHubProps> = ({
                       className={`text-xs font-bold px-2.5 py-0.5 rounded-full font-mono ${
                         isImminent
                           ? 'bg-[#E50914] text-white animate-pulse'
+                          : isUnscheduled
+                          ? 'bg-slate-800 text-slate-400 border border-slate-700'
                           : 'bg-slate-800 text-emerald-400 border border-slate-700'
                       }`}
                     >
-                      {bus.nextBusMinutes <= 1 ? '即將進站' : `${bus.nextBusMinutes} 分鐘後`}
+                      {isUnscheduled
+                        ? '未發車'
+                        : bus.nextBusMinutes <= 1
+                        ? '即將進站'
+                        : `${bus.nextBusMinutes} 分鐘後`}
                     </span>
                   </div>
 
