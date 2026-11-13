@@ -1,0 +1,6 @@
+{
+  "name": "Campus Life CYUT",
+  "description": "朝陽科技大學全方位智慧校園 PWA 網頁應用。整合課表、Tronclass 教務、BYOK 雙模式 Gemini AI 學習助手、積分美食盲盒、二級市場、社群朋友圈與 3D 校園地圖。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

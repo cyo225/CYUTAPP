@@ -1,0 +1,1130 @@
+import { 
+  StudentProfile, 
+  Course, 
+  TodoItem, 
+  Coupon, 
+  SocialPost, 
+  BusRouteInfo, 
+  CampusBuilding,
+  RepairTicket,
+  SmartLockerBooking,
+  CafeteriaCrowd,
+  LeaveRecord
+} from '../types';
+
+export const DEMO_STUDENT: StudentProfile = {
+  id: 'cyut-std-11007042',
+  studentNo: 'B11007042',
+  name: '林朝陽',
+  department: '資訊工程系 (資工系)',
+  semester: '大三 第 1 學期',
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+  points: 680,
+  streakDays: 6,
+  lastCheckInDate: null, // Ready for check-in today
+  lotteryTickets: 3,
+  tronclassConnected: true,
+  tronclassToken: 'cyut_tron_jwt_live_session_94a28b01',
+  geminiApiKey: '',
+  isLoggedIn: true,
+};
+
+export const DEMO_COURSES: Course[] = [
+  {
+    id: 'course-1',
+    code: 'CS301',
+    name: '計算機網路與分散式系統',
+    professor: '黃教授',
+    classroom: 'T2-308',
+    building: '圖資大樓 (T2)',
+    dayOfWeek: 1, // Mon
+    startPeriod: 3,
+    endPeriod: 4,
+    timeRange: '10:10 - 12:00',
+    color: '#E50914',
+    credits: 3,
+    tronclassUrl: 'https://tronclass.cyut.edu.tw/course/301',
+  },
+  {
+    id: 'course-2',
+    code: 'CS315',
+    name: '人工智慧與機器學習導論',
+    professor: '陳特聘教授',
+    classroom: 'T2-402',
+    building: '圖資大樓 (T2)',
+    dayOfWeek: 2, // Tue
+    startPeriod: 1,
+    endPeriod: 2,
+    timeRange: '08:10 - 10:00',
+    color: '#3B82F6',
+    credits: 3,
+    tronclassUrl: 'https://tronclass.cyut.edu.tw/course/315',
+  },
+  {
+    id: 'course-3',
+    code: 'CS322',
+    name: '演算法實務與競程',
+    professor: '張副教授',
+    classroom: 'T2-205',
+    building: '圖資大樓 (T2)',
+    dayOfWeek: 3, // Wed
+    startPeriod: 5,
+    endPeriod: 7,
+    timeRange: '13:30 - 16:20',
+    color: '#10B981',
+    credits: 3,
+    tronclassUrl: 'https://tronclass.cyut.edu.tw/course/322',
+  },
+  {
+    id: 'course-4',
+    code: 'DES201',
+    name: 'UI/UX 使用者介面互動設計',
+    professor: '林副教授',
+    classroom: 'D-304',
+    building: '設計大樓 (D)',
+    dayOfWeek: 4, // Thu
+    startPeriod: 2,
+    endPeriod: 4,
+    timeRange: '09:10 - 12:00',
+    color: '#8B5CF6',
+    credits: 3,
+    tronclassUrl: 'https://tronclass.cyut.edu.tw/course/201',
+  },
+  {
+    id: 'course-5',
+    code: 'MGT309',
+    name: '科技創業與專利佈局',
+    professor: '王客座教授',
+    classroom: 'M-201',
+    building: '管理大樓 (M)',
+    dayOfWeek: 4, // Thu
+    startPeriod: 6,
+    endPeriod: 7,
+    timeRange: '14:25 - 16:20',
+    color: '#F59E0B',
+    credits: 2,
+    tronclassUrl: 'https://tronclass.cyut.edu.tw/course/309',
+  },
+  {
+    id: 'course-6',
+    code: 'GEN104',
+    name: '跨文化溝通與國際視野',
+    professor: 'Dr. Katherine Smith',
+    classroom: 'G-105',
+    building: '人文科技大樓 (G)',
+    dayOfWeek: 5, // Fri
+    startPeriod: 3,
+    endPeriod: 4,
+    timeRange: '10:10 - 12:00',
+    color: '#EC4899',
+    credits: 2,
+    tronclassUrl: 'https://tronclass.cyut.edu.tw/course/104',
+  },
+];
+
+export const DEMO_TODOS: TodoItem[] = [
+  {
+    id: 'todo-1',
+    courseName: '計算機網路與分散式系統',
+    courseCode: 'CS301',
+    title: 'Lab 04: Socket 網路程式設計繳交',
+    type: 'assignment',
+    dueDate: '2026-11-15 23:59',
+    urgent: true,
+    completed: false,
+    pointsReward: 30,
+    detailUrl: 'https://tronclass.cyut.edu.tw/assignment/4012',
+    description: '實作多執行緒 TCP Chat Server 並撰寫 Wireshark 封包分析報告。',
+  },
+  {
+    id: 'todo-2',
+    courseName: '人工智慧與機器學習導論',
+    courseCode: 'CS315',
+    title: '期中模擬隨堂線上小考 (Tronclass Quiz)',
+    type: 'quiz',
+    dueDate: '2026-11-17 10:00',
+    urgent: true,
+    completed: false,
+    pointsReward: 20,
+    detailUrl: 'https://tronclass.cyut.edu.tw/quiz/8812',
+    description: '涵蓋 CNN 卷積運算、損失函數與梯度下降推導。',
+  },
+  {
+    id: 'todo-3',
+    courseName: '演算法實務與競程',
+    courseCode: 'CS322',
+    title: '112-114 學年度歷屆期中考古題與重點詳解',
+    type: 'past_exam',
+    dueDate: '2026-11-20 18:00',
+    urgent: false,
+    completed: false,
+    pointsReward: 15,
+    description: '系學會與助教整理之動態規劃 (DP) 與圖論 (Dijkstra) 必考範題。',
+  },
+  {
+    id: 'todo-4',
+    courseName: 'UI/UX 使用者介面互動設計',
+    courseCode: 'DES201',
+    title: '第五週教材：Design System 與 Micro-Interactions 講義',
+    type: 'material',
+    dueDate: '2026-11-18 23:59',
+    urgent: false,
+    completed: true,
+    pointsReward: 10,
+    description: '講述高流暢微動畫與無障礙色彩對比 WCAG AA 標準。',
+  },
+  {
+    id: 'todo-5',
+    courseName: '教務處課務組',
+    courseCode: 'ADMIN',
+    title: '115 學年度第 1 學期期中評量停修申請截止通知',
+    type: 'announcement',
+    dueDate: '2026-11-25 17:00',
+    urgent: false,
+    completed: false,
+    description: '請同學於截止日前至教務資訊系統提出線上停修申請。',
+  },
+];
+
+export const DEMO_COUPONS: Coupon[] = [
+  {
+    id: 'cp-1',
+    title: '朝陽波霸鮮奶茶 $15 抵用券',
+    storeName: '第一學餐 · 晨曦手搖飲',
+    category: 'beverage',
+    originalValue: 60,
+    discountDescription: '滿 50 元現折 15 元 (全品項通用)',
+    code: 'CYUT-MILK-9921',
+    expiryDate: '2026-12-15',
+    isUsed: false,
+    isListedForSale: false,
+  },
+  {
+    id: 'cp-2',
+    title: '路易莎咖啡朝陽門市 拿鐵 8 折優惠',
+    storeName: '波浪廣場路易莎咖啡',
+    category: 'coffee',
+    originalValue: 90,
+    discountDescription: '大杯拿鐵/美式享單杯 8 折',
+    code: 'LOUISA-CYUT-4481',
+    expiryDate: '2026-12-30',
+    isUsed: false,
+    isListedForSale: true,
+    salePrice: 70, // 70 <= 90 * 0.95 = 85.5 (Valid C2C resale)
+    sellerId: 'cyut-std-11007042',
+    sellerName: '林朝陽',
+  },
+  {
+    id: 'cp-3',
+    title: '霧峰肉圓老街店 招牌套餐折 $20',
+    storeName: '霧峰老街美食合作社',
+    category: 'snack',
+    originalValue: 80,
+    discountDescription: '肉圓兩顆加四神湯折 20 元',
+    code: 'WUFENG-BENTO-1120',
+    expiryDate: '2026-11-30',
+    isUsed: false,
+    isListedForSale: false,
+  },
+];
+
+export const DEMO_MARKETPLACE: Coupon[] = [
+  {
+    id: 'mkt-1',
+    title: '第二學餐健康舒肥雞胸便當折 $25',
+    storeName: '二餐 · 綠漾輕食',
+    category: 'bento',
+    originalValue: 120,
+    discountDescription: '任選雙主菜便當折 25 元',
+    code: 'BENTO-DISC-7721',
+    expiryDate: '2026-12-10',
+    isUsed: false,
+    isListedForSale: true,
+    salePrice: 95, // 95 <= 120 * 0.95 (114)
+    sellerId: 'std-99214',
+    sellerName: '企管四 廖同學',
+  },
+  {
+    id: 'mkt-2',
+    title: '校門口義大利麵 濃湯麵包升級兌換券',
+    storeName: 'PaPa Pasta 朝陽店',
+    category: 'snack',
+    originalValue: 50,
+    discountDescription: '點任一口味義大利麵免費升級超值套餐',
+    code: 'PAPA-UP-3321',
+    expiryDate: '2026-12-05',
+    isUsed: false,
+    isListedForSale: true,
+    salePrice: 35, // 35 <= 50 * 0.95 (47.5)
+    sellerId: 'std-88120',
+    sellerName: '幼保三 許同學',
+  },
+  {
+    id: 'mkt-3',
+    title: '鮮茶道霧峰吉峰店 現萃茶買一送一',
+    storeName: '鮮茶道 吉峰店',
+    category: 'beverage',
+    originalValue: 70,
+    discountDescription: '同品項四季春/阿里山茶買一送一',
+    code: 'PRESTEA-BOGO-8819',
+    expiryDate: '2026-12-20',
+    isUsed: false,
+    isListedForSale: true,
+    salePrice: 55, // 55 <= 70 * 0.95 (66.5)
+    sellerId: 'std-77142',
+    sellerName: '傳播二 王同學',
+  },
+];
+
+export const DEMO_POSTS: SocialPost[] = [
+  {
+    id: 'post-1',
+    authorId: 'std-10291',
+    authorName: '朝陽程式設計研究社',
+    authorDept: '資工系 / 資訊學院',
+    isAnonymous: false,
+    category: 'club',
+    title: '🔥 2026 CYUT 校園 Hackathon 黑客松熱烈報名中！',
+    content: '總獎金高達 80,000 元！本屆主題為「智慧校園與邊緣運算 AI」。不論你是擅長前端、演算法還是 UI/UX，都歡迎組隊挑戰！提供免點名公假證明！',
+    timestamp: '2 小時前',
+    likes: 68,
+    isLiked: true,
+    commentsCount: 14,
+    comments: [
+      { id: 'c1', author: '資通二 柯同學', text: '請問外系同學可以跨領域組隊嗎？', time: '1 小時前' },
+      { id: 'c2', author: '朝陽程式設計研究社', text: '完全可以！跨領域團隊更有加分機會！', time: '40 分鐘前' }
+    ],
+    tag: '黑客松競賽',
+  },
+  {
+    id: 'post-2',
+    authorId: 'std-anonymous-1',
+    authorName: '匿名朝陽人',
+    authorDept: '設計學院',
+    isAnonymous: true,
+    category: 'feed',
+    title: '波浪廣場的夕陽今天太絕美了，朝陽人的浪漫！',
+    content: '在設計大樓熬夜趕完模型，下樓剛好看見遠方霧峰山巒與火燒雲，突然覺得讀朝陽其實真的很美很治癒。大家期中考一起加油！',
+    timestamp: '4 小時前',
+    likes: 142,
+    isLiked: false,
+    commentsCount: 9,
+    comments: [
+      { id: 'c3', author: '建築三 張同學', text: '紅磚配落日真的無敵，朝陽地標！', time: '3 小時前' }
+    ],
+    tag: '校園日常',
+  },
+  {
+    id: 'post-3',
+    authorId: 'std-11007042',
+    authorName: '林朝陽',
+    authorDept: '資訊工程系',
+    isAnonymous: false,
+    category: 'exchange',
+    title: '【二手書】計算機網路 (第8版 Kurose) 近全新 $350 (原價$1200)',
+    content: '內頁僅有前兩章少許螢光筆劃記，期中考複習必備，含教授重點小考題筆記附贈。可在波浪廣場或 T2 大廳面交自取。',
+    timestamp: '昨天 17:30',
+    likes: 24,
+    isLiked: false,
+    commentsCount: 4,
+    comments: [
+      { id: 'c4', author: '資工二 趙同學', text: '私訊排！請問今天下午能在 T2 自取嗎？', time: '昨天 19:00' }
+    ],
+    tag: '二手教材分享',
+    price: 350,
+    itemCondition: '9 成新 (含小考考古題筆記)',
+  },
+  {
+    id: 'post-4',
+    authorId: 'std-mixer-09',
+    authorName: '吉峰揪團大使',
+    authorDept: '休閒管理系',
+    isAnonymous: false,
+    category: 'mixer',
+    title: '【週五晚】霧峰光復新村文青咖啡小聚 + 桌遊交流團！',
+    content: '放學想找人一起喝咖啡聊聊校園八卦或玩阿瓦隆嗎？目前已有 3 男 2 女，想再揪 2-3 位朋友一起出發，男女不限～！',
+    timestamp: '5 小時前',
+    likes: 31,
+    isLiked: false,
+    commentsCount: 6,
+    comments: [
+      { id: 'c5', author: '社工三 邱同學', text: '+1！想去放鬆一下！', time: '4 小時前' }
+    ],
+    tag: '聯誼揪團',
+  },
+];
+
+export const DEMO_BUS_ROUTES: BusRouteInfo[] = [
+  {
+    route: '131',
+    destination: '臺中車站 (經大里、中興大學)',
+    stopName: '朝陽科技大學校內站',
+    nextBusMinutes: 4,
+    status: 'approaching',
+    operatingHours: '06:00 - 22:30 (尖峰 10-15 分)',
+  },
+  {
+    route: '132',
+    destination: '民俗公園 (經大里高中、草湖)',
+    stopName: '朝陽科技大學校內站',
+    nextBusMinutes: 12,
+    status: 'scheduled',
+    operatingHours: '06:15 - 22:00 (班距 15-20 分)',
+  },
+  {
+    route: '151',
+    destination: '高鐵臺中站 / 市政府 (經中投快速道路)',
+    stopName: '朝陽科技大學校門口',
+    nextBusMinutes: 1,
+    status: 'arriving',
+    operatingHours: '06:00 - 23:00 (直達高鐵快線)',
+  },
+  {
+    route: '133',
+    destination: '烏日高鐵站 (經霧峰農會)',
+    stopName: '朝陽科技大學校內站',
+    nextBusMinutes: 28,
+    status: 'scheduled',
+    operatingHours: '06:30 - 21:00',
+  },
+  {
+    route: '158',
+    destination: '嶺東科技大學 (經臺中火車站、文心路)',
+    stopName: '吉峰路口 (朝陽站)',
+    nextBusMinutes: 18,
+    status: 'scheduled',
+    operatingHours: '06:00 - 21:40',
+  },
+];
+
+export const CYUT_BUILDINGS: CampusBuilding[] = [
+  {
+    id: 'bldg-a',
+    code: 'A',
+    name: '行政大樓 (A)',
+    nameEn: 'Administration Building',
+    description: '校級核心行政中心，環繞紅磚廣場，設有校長室、教務處、學務處及聯合聯合服務大廳。',
+    departments: ['校長室', '教務處課務組', '學務處生活輔導組', '總務處', '軍訓室'],
+    floors: 5,
+    coordinates: [0.0, 0, 5.2],
+    color: '#3B82F6',
+    category: 'administrative',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '教務學務聯合服務大廳與出納組',
+        rooms: [
+          { roomCode: 'A-101', name: '聯合教務櫃台', type: '行政大廳', floor: 1, capacity: 60, facilities: ['自動成績列印機', '電子號碼機', '退選審核櫃台'], description: '學籍成績、在學證明及註冊各類業務辦理窗口' },
+          { roomCode: 'A-103', name: '總務處出納與保管組', type: '行政辦公室', floor: 1, capacity: 30, facilities: ['學雜費繳納窗口', '自動繳款終端'], description: '各項學雜費及校園票證補發服務' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '學生事務處與課外活動指導組',
+        rooms: [
+          { roomCode: 'A-201', name: '學務處辦公室', type: '行政辦公室', floor: 2, capacity: 40, facilities: ['會議桌', '生輔諮詢區'], description: '獎助學金、學貸減免及缺曠請假審核' },
+          { roomCode: 'A-205', name: '課外活動多功能會議室', type: '研討室', floor: 2, capacity: 50, facilities: ['無線麥克風', '雙螢幕投影'], description: '全校社團幹部與學生會常設會議室' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '教務處發展中心與軍訓室',
+        rooms: [
+          { roomCode: 'A-301', name: '教務長室與課務核心中心', type: '行政主管室', floor: 3, capacity: 35, facilities: ['視訊會議系統', '課表排程終端'], description: '全校選課系統與排課決策指揮中心' },
+          { roomCode: 'A-305', name: '24小時校安中心 (軍訓室)', type: '安全中樞', floor: 3, capacity: 25, facilities: ['校園緊急求救連線台', '閉路監控系統'], description: '全天候值勤教官駐守與緊急事件應變基地' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '校長室與副校長室',
+        rooms: [
+          { roomCode: 'A-401', name: '第一行政會議廳', type: '國際會議廳', floor: 4, capacity: 120, facilities: ['同聲傳譯席位', '4K 高清會議錄播'], description: '校務重大決策會議與外賓簽署合作協定廳' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '校史館與國際事務處',
+        rooms: [
+          { roomCode: 'A-501', name: '朝陽校史紀念館', type: '常設展覽館', floor: 5, capacity: 80, facilities: ['觸控互動導覽牆', '榮譽歷程展示區'], description: '展示朝陽創校歷程、波生創辦人紀念文獻與辦學成就' },
+          { roomCode: 'A-504', name: '國際暨兩岸合作處', type: '行政辦公室', floor: 5, capacity: 40, facilities: ['留學諮詢室', '外籍生交誼區'], description: '交換學生選拔與海外姊妹校學術合作辦公室' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-e',
+    code: 'E',
+    name: '理工大樓 (E)',
+    nameEn: 'Science & Engineering Building',
+    description: '理工學院培育工程技術人才的搖籃，位處行政大樓西側，具備多重專業實驗室與無塵室。',
+    departments: ['應用化學系', '環境工程與管理系', '營建工程系', '工業工程與管理系'],
+    floors: 6,
+    coordinates: [-5.5, 0, 2.0],
+    color: '#0284C7',
+    category: 'academic',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '重機械工程與智慧製造工廠',
+        rooms: [
+          { roomCode: 'E-101', name: '智慧製造實作中心', type: '重點實驗室', floor: 1, capacity: 60, facilities: ['CNC 多軸加工機', '工業機械手臂', '三次元量測儀'], description: '工業工程與智慧產線實作教學空間' },
+          { roomCode: 'E-105', name: '營建材料力學試驗室', type: '實驗室', floor: 1, capacity: 45, facilities: ['萬能材料試驗機', '混凝土抗壓機'], description: '結構力學與土木建材耐震測試專用空間' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '環境監測與分析化學實驗室',
+        rooms: [
+          { roomCode: 'E-201', name: '環境毒物與水質檢驗分析室', type: '專業實驗室', floor: 2, capacity: 50, facilities: ['氣相層析質譜儀 (GC-MS)', '排煙通風櫃'], description: '環境檢測與永續綠能科技研究基地' },
+          { roomCode: 'E-208', name: '精密儀器共用中心', type: '研究中心', floor: 2, capacity: 30, facilities: ['原子吸收光譜儀', '紫外光可見光分光光度計'], description: '全學院師生高階分析儀器預約使用室' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '理工學院院辦與工程資訊電腦教室',
+        rooms: [
+          { roomCode: 'E-301', name: '理工學院院長室與辦公室', type: '行政辦公室', floor: 3, capacity: 30, facilities: ['行政會客室', '教學評鑑研討室'], description: '綜合理工學院各系所教務與國際認證' },
+          { roomCode: 'E-306', name: 'CAD/CAM 工程電腦繪圖教室', type: '專業教室', floor: 3, capacity: 70, facilities: ['SolidWorks 專業授權電腦', '高階繪圖螢幕'], description: '工程圖學與 3D 結構建模教學專用教室' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '智慧綠色能源與生化科技實驗室',
+        rooms: [
+          { roomCode: 'E-402', name: '太陽能光電與儲能研究室', type: '研究室', floor: 4, capacity: 40, facilities: ['太陽光模擬器', '鋰電池循環充放測試儀'], description: '新世代電池材料與淨零碳排應用研發' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '研究生專題研討室與自習室',
+        rooms: [
+          { roomCode: 'E-501', name: '碩博士專題研討室 A', type: '專題研討室', floor: 5, capacity: 35, facilities: ['智慧白板', '多點視訊投屏'], description: '工程碩博士學位論文提報與產學專題研討' },
+        ],
+      },
+      {
+        floorNumber: 6,
+        floorLabel: '6F',
+        floorTitle: '產學合作頂尖研發中心',
+        rooms: [
+          { roomCode: 'E-601', name: '先進材料工程產學研發基地', type: '產學實驗室', floor: 6, capacity: 30, facilities: ['潔淨室工作台', '高溫燒結爐'], description: '與中部科學園區大廠產學合作共構實驗中心' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-t1',
+    code: 'T1',
+    name: '教學大樓 (T1)',
+    nameEn: 'Teaching Building 1',
+    description: '坐落於海豚廣場西側，為全校通識教學與各系所基礎課程的核心教學大樓。',
+    departments: ['通識教育中心', '共同教學部', '外語教學中心'],
+    floors: 7,
+    coordinates: [-3.2, 0, -6.5],
+    color: '#6366F1',
+    category: 'academic',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '大型階梯講堂與師生交流大廳',
+        rooms: [
+          { roomCode: 'T1-101', name: '百人演講階梯大講堂', type: '大型講堂', floor: 1, capacity: 160, facilities: ['雙投影巨幕', '劇院級音響系統', '活動式階梯桌椅'], description: '全校共通通識講座、系週會與名師學術論壇' },
+          { roomCode: 'T1-105', name: '外語自主學習角 (E-Corner)', type: '學習空間', floor: 1, capacity: 40, facilities: ['外語原文書庫', '多媒體聽力平板席'], description: '提供學生英語口說練習與外語檢定模擬測驗' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '智慧互動微型教學教室群',
+        rooms: [
+          { roomCode: 'T1-201', name: '分組協作討論教室', type: '智慧教室', floor: 2, capacity: 55, facilities: ['六角形互動討論桌', '獨立分組顯示螢幕'], description: 'PBL 問題導向學習與翻轉課堂示範教室' },
+          { roomCode: 'T1-208', name: '通識多功能綜合教室', type: '普通教室', floor: 2, capacity: 70, facilities: ['高亮度雷射投影機', '全覆蓋抗噪麥克風'], description: '人文通識、歷史與哲學核心必修教室' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '外語情境模擬教室與數位語言教室',
+        rooms: [
+          { roomCode: 'T1-304', name: '數位同步口譯實驗室', type: '專業語言教室', floor: 3, capacity: 45, facilities: ['獨立隔音口譯艙', '專業錄音監聽系統'], description: '口譯培訓與專業外語商務談判實戰空間' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '數學與基礎科學教學中心',
+        rooms: [
+          { roomCode: 'T1-401', name: '微積分與應用數學研討室', type: '研討教室', floor: 4, capacity: 60, facilities: ['全牆磁性白板', '幾何繪圖輔助軟體'], description: '全校工管學院基礎微積分與工程數學課堂' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '通識教育中心辦公室與教師研究室',
+        rooms: [
+          { roomCode: 'T1-501', name: '通識中心綜合辦公室', type: '行政空間', floor: 5, capacity: 35, facilities: ['教師課務信箱', '學生諮詢櫃台'], description: '通識選修抵免與藝文展覽專案籌備' },
+        ],
+      },
+      {
+        floorNumber: 6,
+        floorLabel: '6F',
+        floorTitle: '跨領域學程與通識選修專用教室',
+        rooms: [
+          { roomCode: 'T1-602', name: '社會永續與人文科技工坊', type: '跨域教室', floor: 6, capacity: 50, facilities: ['可移動屏風', '專案海報展架'], description: 'USR 大學社會責任實踐課堂專屬基地' },
+        ],
+      },
+      {
+        floorNumber: 7,
+        floorLabel: '7F',
+        floorTitle: '多功能空中花園與藝文研習室',
+        rooms: [
+          { roomCode: 'T1-701', name: '空中藝文工作坊', type: '多功能研習室', floor: 7, capacity: 45, facilities: ['自然採光天窗', '可拆卸式展覽軌道'], description: '提供全校美育與藝術欣賞實作創作課堂' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-d',
+    code: 'D',
+    name: '設計大樓 (D)',
+    nameEn: 'Design Building',
+    description: '朝陽設計學院核心大樓，建築外觀以經典紅磚與開闊通透的評圖挑高中庭著稱。',
+    departments: ['視覺傳達設計系', '工業設計系', '建築系', '景觀及都市設計系'],
+    floors: 6,
+    coordinates: [3.2, 0, -6.5],
+    color: '#8B5CF6',
+    category: 'academic',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '設計學院大型展覽廳與評圖中庭',
+        rooms: [
+          { roomCode: 'D-101', name: '黑盒子國際設計展演廳', type: '展覽廳', floor: 1, capacity: 150, facilities: ['專業洗牆聚光燈軌道', '活動式展牆系統', '全遮光投影設備'], description: '新一代設計展校內預展與畢業設計發表會' },
+          { roomCode: 'D-105', name: '建築大型結構模型製作坊', type: '專業實作坊', floor: 1, capacity: 50, facilities: ['重型木工鋸台', '工業級除塵抽風系統'], description: '建築系大型空間模型與家具結構木作' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '工業設計快速成型實作中心',
+        rooms: [
+          { roomCode: 'D-201', name: '數位自造與 3D 快速成型工坊', type: '重點自造中心', floor: 2, capacity: 45, facilities: ['工業級光固化 3D 列印機', '雙軸雷射切割機', '真空成型機'], description: '工設系產品外觀手板與機構模型打樣' },
+          { roomCode: 'D-205', name: '油土模型雕塑專業教室', type: '實作教室', floor: 2, capacity: 40, facilities: ['專業汽車油土加溫烤箱', '刮刀雕塑工作台'], description: '交通工具造型與產品人體工學油土推塑' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: 'UI/UX 與視覺傳達設計數位實驗室',
+        rooms: [
+          { roomCode: 'D-304', name: 'UI/UX 互動介面與眼動儀實驗室', type: '專業電腦教室', floor: 3, capacity: 50, facilities: ['Apple Mac Studio 工作站群', 'Tobii Pro 眼動儀', '高階繪圖板'], description: '使用者經驗介面設計、APP 互動原型與視覺心理學測試' },
+          { roomCode: 'D-308', name: '插畫與包裝結構設計實驗室', type: '設計教室', floor: 3, capacity: 55, facilities: ['專業打樣割樣機', '色差校正燈箱'], description: '商業包裝打樣與品牌識別視覺創作' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '建築系個人設計繪圖工作室 (Studio)',
+        rooms: [
+          { roomCode: 'D-401', name: '建築畢業設計 Studio A', type: '開放設計室', floor: 4, capacity: 60, facilities: ['大尺寸製圖桌', '專屬材料置物架', '24H 門禁不斷電作業區'], description: '建築系大四與大五畢業設計專屬工作空間' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '景觀生態與都市規劃 GIS 中心',
+        rooms: [
+          { roomCode: 'D-502', name: '地理資訊系統與空間規劃實驗室', type: '電腦教室', floor: 5, capacity: 50, facilities: ['ArcGIS 專用授權主機', '無人機航空遙測工作站'], description: '景觀都市規劃與生態環境模擬計算' },
+        ],
+      },
+      {
+        floorNumber: 6,
+        floorLabel: '6F',
+        floorTitle: '設計學院院長室與空中材料圖書館',
+        rooms: [
+          { roomCode: 'D-601', name: '設計學院院長室與會議廳', type: '行政會議空間', floor: 6, capacity: 35, facilities: ['視訊會議系統', '國際評審討論室'], description: '綜理全設計學院國際競賽 (Red Dot, iF) 培訓' },
+          { roomCode: 'D-605', name: 'CMF 前瞻材質資源庫', type: '資源圖書館', floor: 6, capacity: 30, facilities: ['上萬種工程塑料與金屬色板樣品架'], description: '提供師生免費借閱探索最新表面處理與環保材質' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-t2',
+    code: 'T2',
+    name: '管理大樓 (T2)',
+    nameEn: 'Management Building (T2)',
+    description: '榮獲 AACSB 國際商管認證殿堂，位於校園東北角（第三學餐旁），涵蓋現代化智慧商務教室。',
+    departments: ['企業管理系', '財務金融系', '會計系', '保險金融系', '行銷與流通管理系'],
+    floors: 7,
+    coordinates: [11.0, 0, -6.5],
+    color: '#F59E0B',
+    category: 'academic',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '國際商務個案講堂與哈佛教室',
+        rooms: [
+          { roomCode: 'T2-101', name: '哈佛式馬蹄形商務個案教室', type: '個案教室', floor: 1, capacity: 90, facilities: ['階梯馬蹄形桌椅', '名牌插座系統', '多視角錄像'], description: 'AACSB 國際高階管理與真實企業個案研討' },
+          { roomCode: 'T2-105', name: '管理學院第三學生餐廳休憩大廳', type: '綜合空間', floor: 1, capacity: 120, facilities: ['連鎖餐飲進駐', '行動充電吧台'], description: '鄰近第三學餐，提供師生餐飲與自修交流空間' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '彭博金融交易與大數據實習室',
+        rooms: [
+          { roomCode: 'T2-201', name: '彭博專業資訊終端實驗室 (Bloomberg Lab)', type: '金融實驗室', floor: 2, capacity: 60, facilities: ['12 席 Bloomberg Terminal 雙螢幕工作站', '即時全球股市走勢牆'], description: '國際金融期貨交易模擬與投資組合量化分析' },
+          { roomCode: 'T2-208', name: '財金學院虛擬交易所', type: '專業教室', floor: 2, capacity: 70, facilities: ['證券行情電子跑馬燈', '下單模擬軟體'], description: '證券分析與財富管理實務操作' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '行銷與跨境電商直播實作基地',
+        rooms: [
+          { roomCode: 'T2-302', name: '跨境電商直播演練攝影棚', type: '直播實作室', floor: 3, capacity: 35, facilities: ['4K 直播切換台', '專業環形補光燈', '綠幕虛擬背景'], description: '新零售行銷實作、帶貨直播與社群影音製作' },
+          { roomCode: 'T2-308', name: 'ERP 企業資源規劃認證中心', type: '電腦教室', floor: 3, capacity: 75, facilities: ['SAP ERP 伺服器客戶端', '雙螢幕投影'], description: '企業供應鏈、物料需求規劃與會計系統認證考場' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '管理學院各系系主任與系所辦公室',
+        rooms: [
+          { roomCode: 'T2-401', name: '企業管理系聯合系辦', type: '系所辦公室', floor: 4, capacity: 40, facilities: ['系務櫃台', '實習諮詢室'], description: '企管系各學制課務與校外實習諮詢' },
+          { roomCode: 'T2-405', name: '保險金融管理系辦公室', type: '系所辦公室', floor: 4, capacity: 35, facilities: ['證照考題閱覽架'], description: '保險精算與金融風控輔導專案基地' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '創新創業與專利孵化基地',
+        rooms: [
+          { roomCode: 'T2-503', name: '學生微型創業孵化空間', type: '孵化器', floor: 5, capacity: 50, facilities: ['模組化活動工作島', '商務洽談室'], description: '大專生創業競賽、路演 Pitch 模擬與天使投資媒合' },
+        ],
+      },
+      {
+        floorNumber: 6,
+        floorLabel: '6F',
+        floorTitle: 'EMBA 高階管理碩士專班講堂',
+        rooms: [
+          { roomCode: 'T2-601', name: 'EMBA 領袖尊榮講堂', type: '高級講堂', floor: 6, capacity: 70, facilities: ['真皮人體工學椅', '獨立電源與網路孔'], description: '高階企業家與中高階經理人專案研討' },
+        ],
+      },
+      {
+        floorNumber: 7,
+        floorLabel: '7F',
+        floorTitle: '管理學院院長室與國際會議廳',
+        rooms: [
+          { roomCode: 'T2-701', name: 'AACSB 國際認證會議廳', type: '國際會議廳', floor: 7, capacity: 90, facilities: ['全球視訊遠距互聯系統', '同步翻譯機'], description: '國際商管學術年會與客座教授講學專用' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-m',
+    code: 'M',
+    name: '資訊大樓 (M)',
+    nameEn: 'Information Technology Building',
+    description: '資訊學院核心技術研發樞紐，座落於行政大樓東側，設有 AI 邊緣運算中心與高階網路實驗室。',
+    departments: ['資訊工程系', '資訊管理系', '資訊與通訊系'],
+    floors: 6,
+    coordinates: [5.5, 0, 2.0],
+    color: '#EF4444',
+    category: 'academic',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: 'AIoT 智慧聯網展演大廳與機房',
+        rooms: [
+          { roomCode: 'M-101', name: '資訊學院智慧聯網展演中心', type: '展演中心', floor: 1, capacity: 80, facilities: ['LED 互動顯示幕牆', '邊緣運算展示台'], description: '展示師生智慧校園專案與產學 AI 落地成果' },
+          { roomCode: 'M-106', name: '學院高密度刀鋒伺服器機房', type: '機房中樞', floor: 1, capacity: 15, facilities: ['冷熱通道節能機櫃', '氣體滅火系統', '不斷電系統 UPS'], description: '資訊學院雲端虛擬化平台與高速運算節點' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '雲端運算與人工智慧深度學習實驗室',
+        rooms: [
+          { roomCode: 'M-201', name: 'NVIDIA GPU 深度學習計算中心', type: '重點實驗室', floor: 2, capacity: 60, facilities: ['NVIDIA RTX 4090 深度學習工作站 40 台', '大螢幕代碼演示幕'], description: '機器學習演算法、電腦視覺與自然語言生成訓練課堂' },
+          { roomCode: 'M-205', name: '軟體工程與敏捷開發教室', type: '專業教室', floor: 2, capacity: 65, facilities: ['Git 協作輔助螢幕', '雙螢幕程式撰寫桌'], description: '演算法實務、競程集訓與系統分析' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '網路工程與資通安全攻防演練室',
+        rooms: [
+          { roomCode: 'M-308', name: 'Cisco 網路技術認證實驗室', type: '網路實驗室', floor: 3, capacity: 70, facilities: ['Cisco Catalyst 交換器機櫃 8 組', '光纖接續工具箱'], description: '計算機網路與分散式系統、CCNA/CCNP 路由交換實務' },
+          { roomCode: 'M-312', name: '紅藍隊資安攻防演練靶場', type: '資安實驗室', floor: 3, capacity: 45, facilities: ['隔離虛擬靶場伺服器', '多重防火牆測試儀'], description: '滲透測試、惡意程式逆向分析與網路防禦' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '資訊工程系與資管系系辦公室',
+        rooms: [
+          { roomCode: 'M-401', name: '資訊工程系系辦公室', type: '系所辦公室', floor: 4, capacity: 40, facilities: ['課務諮詢櫃台', '畢業門檻審核台'], description: '資工系學生各項學務、實習與畢業專案繳交' },
+          { roomCode: 'M-405', name: '資訊管理系系辦公室', type: '系所辦公室', floor: 4, capacity: 40, facilities: ['學生洽公休息區'], description: '資管系產學合作與專業認證諮詢' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '元宇宙與虛擬實境 (VR/AR) 實作室',
+        rooms: [
+          { roomCode: 'M-501', name: 'XR 沉浸式互動技術開發中心', type: '專業實作室', floor: 5, capacity: 40, facilities: ['Meta Quest Pro 頭顯 20 組', '空間動捕定位器'], description: '虛擬實境沉浸式教學軟體與 3D 空間運算開發' },
+        ],
+      },
+      {
+        floorNumber: 6,
+        floorLabel: '6F',
+        floorTitle: '資訊學院院長室與研究生專題室',
+        rooms: [
+          { roomCode: 'M-601', name: '資訊學院院長室與學術會議室', type: '行政空間', floor: 6, capacity: 30, facilities: ['高階遠距視訊會議系統'], description: '資訊領域國際頂會投稿與產學合約簽署' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-l',
+    code: 'L',
+    name: '圖書館 (L)',
+    nameEn: 'Pao-Sheng Memorial Library',
+    description: '波生紀念圖書館，位在波浪廣場旁，藏書逾百萬冊，具備 24 小時自習室與多媒體視聽席。',
+    departments: ['圖書館流通組', '數位資源閱覽組', '特藏檔案室'],
+    floors: 7,
+    coordinates: [11.0, 0, -0.5],
+    color: '#10B981',
+    category: 'facility',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '借還書流通櫃台與新書展示區',
+        rooms: [
+          { roomCode: 'L-101', name: '圖書借還暨讀者服務台', type: '流通中心', floor: 1, capacity: 50, facilities: ['RFID 自動借還書機', '圖書除菌機', '預約書取書架'], description: '借還書手續、跨校館際合作代借與證件諮詢' },
+          { roomCode: 'L-105', name: '24 小時寧靜閱覽自習室', type: '自修空間', floor: 1, capacity: 200, facilities: ['獨立插座單人自修桌', 'LED 柔光防眩檯燈', '門禁刷卡機'], description: '全天候開放，供學生考前溫書與自修' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '中西文期刊與多媒體隨選視聽中心 (MOD)',
+        rooms: [
+          { roomCode: 'L-201', name: '多媒體數位影音聆賞區', type: '視聽中心', floor: 2, capacity: 80, facilities: ['獨立 4K 影音席 30 席', '小團體劇院室 3 間'], description: '教學公播版藍光 DVD、線上串流影片檢索收看' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '科技與資訊工程圖書專區',
+        rooms: [
+          { roomCode: 'L-301', name: '自然科學與應用技術書庫', type: '主題書庫', floor: 3, capacity: 100, facilities: ['密集移動書架', '休閒閱覽沙發'], description: '涵蓋程式設計、人工智慧、工程數學等中西文專書' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '人文、藝術與設計專業特藏館',
+        rooms: [
+          { roomCode: 'L-401', name: '設計與建築專業畫冊專區', type: '藝術書庫', floor: 4, capacity: 70, facilities: ['大尺寸平躺看書桌', '特藏手繪稿展櫃'], description: '世界頂尖設計年鑑、建築名錄與獲獎作品集' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '社會科學與商業管理典藏區',
+        rooms: [
+          { roomCode: 'L-501', name: '商管與經濟專業文獻庫', type: '社科書庫', floor: 5, capacity: 90, facilities: ['學位論文專用查閱終端'], description: '收錄全球主要財經期刊與歷屆碩博士論文' },
+        ],
+      },
+      {
+        floorNumber: 6,
+        floorLabel: '6F',
+        floorTitle: '小組研討討論室群 (Group Study Rooms)',
+        rooms: [
+          { roomCode: 'L-601 ~ L-608', name: '研討室 1~8 號房', type: '研討小間', floor: 6, capacity: 8, facilities: ['65吋無線投屏電視', '磁性玻璃白板', '靜音隔音門'], description: '提供 3-8 人小組專題報告討論，需先至系統線上預約' },
+        ],
+      },
+      {
+        floorNumber: 7,
+        floorLabel: '7F',
+        floorTitle: '罕見善本書庫與波生創辦人文獻室',
+        rooms: [
+          { roomCode: 'L-701', name: '創辦人波生特藏手稿館', type: '檔案文獻館', floor: 7, capacity: 30, facilities: ['恆溫恆濕空調系統', '無酸檔案收納櫃'], description: '典藏創辦人手札、重要公文與朝陽創校史料' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-g',
+    code: 'G',
+    name: '人文科技大樓 (G)',
+    nameEn: 'Humanities & Technology Building',
+    description: '人文暨社會學院所在地，位於圖書館南側，具備幼兒保育實驗室與傳播攝影棚。',
+    departments: ['傳播藝術系', '幼兒保育系', '社會工作系', '應用英語系'],
+    floors: 5,
+    coordinates: [11.0, 0, 6.0],
+    color: '#EC4899',
+    category: 'academic',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '傳播藝術多功能全數位攝影棚',
+        rooms: [
+          { roomCode: 'G-101', name: '廣播電視專業虛擬攝影棚', type: '重點攝影棚', floor: 1, capacity: 70, facilities: ['4K 廣播級攝影機 3 部', '頂棚冷光燈光架', '專業導播副控室'], description: '電視新聞播報、短影音創作與節目錄製實習' },
+          { roomCode: 'G-105', name: '數位成音與錄音配音工作室', type: '成音室', floor: 1, capacity: 25, facilities: ['Pro Tools 專業音效剪輯工作站', '無響隔音配音間'], description: '廣播劇、影視配音與原創音樂混音' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '幼兒保育模擬照護與蒙特梭利教室',
+        rooms: [
+          { roomCode: 'G-201', name: '嬰幼兒感官發展與模擬托嬰中心', type: '情境教室', floor: 2, capacity: 45, facilities: ['嬰兒照護模擬假人', '安全軟質爬行地板', '觀察單向鏡'], description: '保母托育實務與嬰幼兒急救技能檢定培訓' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '社會工作實習個案諮商室',
+        rooms: [
+          { roomCode: 'G-301', name: '個別諮商與家庭評估模擬室', type: '諮商室', floor: 3, capacity: 20, facilities: ['單向透視玻璃', '影音同步側錄分析設備'], description: '社工專業助人技巧與家庭諮商實習教學' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '人文學院各系系辦與多媒體電腦室',
+        rooms: [
+          { roomCode: 'G-401', name: '傳播藝術系系辦公室', type: '系所辦公室', floor: 4, capacity: 35, facilities: ['器材登記借還台'], description: '傳播器材借用與影展籌備' },
+          { roomCode: 'G-406', name: '多媒體非線性影音剪輯教室', type: '電腦教室', floor: 4, capacity: 60, facilities: ['Adobe Premiere / DaVinci Resolve 專業工作站'], description: '影視後期剪輯與調色教學' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '人文暨社會學院院長室與教師研究室',
+        rooms: [
+          { roomCode: 'G-501', name: '人文社會學院院長室', type: '行政空間', floor: 5, capacity: 30, facilities: ['研討長桌', '遠距評審會議系統'], description: '綜理全學院社工、幼保、傳播學術展演' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-v',
+    code: 'V',
+    name: '航空大樓 (V)',
+    nameEn: 'Aviation Building',
+    description: '全台首屈一指航空學院，位於西北側高地，具備波音 777 模擬駕駛艙、飛航管制台與空勤實習教室。',
+    departments: ['航空機械系', '飛行與民航人員技術系', '航空運務系'],
+    floors: 6,
+    coordinates: [-11.5, 0, -7.0],
+    color: '#06B6D4',
+    category: 'academic',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '航空客艙服務實作教室 (Mock-up)',
+        rooms: [
+          { roomCode: 'V-101', name: '波音 777 客艙情境服務模擬艙', type: '重點情境教室', floor: 1, capacity: 60, facilities: ['真機頭等艙及商務艙座椅', '飛機機內廣播系統', '餐車廚房設備 Galley'], description: '空服員客艙服務流程、緊急逃生演練實習' },
+          { roomCode: 'V-105', name: '機場地勤與登機門報到櫃台實驗室', type: '運務實作室', floor: 1, capacity: 45, facilities: ['登機證自動列印機', '行李秤重輸送帶系統'], description: '機場航站地勤管制與旅客登機手續模擬' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '全動態飛行模擬器中心',
+        rooms: [
+          { roomCode: 'V-201', name: 'DA40 / DA42 全功能動態模擬駕駛艙', type: '模擬機中心', floor: 2, capacity: 25, facilities: ['六軸全動態飛行模擬器', '環景 220 度高傳真視景投影'], description: '民航機師儀器降落、盲降檢定與特情處置' },
+          { roomCode: 'V-206', name: '飛航管制台 (ATC) 雷達塔台實驗室', type: '管制實驗室', floor: 2, capacity: 35, facilities: ['360度環形機場塔台模擬螢幕', '航管雷達管制終端'], description: '近場管制、場面管制與航管通話陸空對話' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '航空發動機構造與航電系統實驗室',
+        rooms: [
+          { roomCode: 'V-302', name: 'CFM56 渦輪噴射發動機實體拆解室', type: '動力實驗室', floor: 3, capacity: 40, facilities: ['波音 737 實體發動機剖面', '氣動起子與扭力扳手工具架'], description: '發動機熱段檢驗、葉片探傷與葉片平衡量測' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '無人機 (UAV) 系統研發與空域規劃室',
+        rooms: [
+          { roomCode: 'V-401', name: '無人飛行載具設計與測繪中心', type: '無人機中心', floor: 4, capacity: 45, facilities: ['VTOL 垂直起降無人機組', '熱成像吊艙', '圖傳接收站'], description: '無人機證照培訓與智慧巡檢演算法測試' },
+        ],
+      },
+      {
+        floorNumber: 5,
+        floorLabel: '5F',
+        floorTitle: '航空學院各系系辦公室',
+        rooms: [
+          { roomCode: 'V-501', name: '飛行與民航技術系辦公室', type: '系所辦公室', floor: 5, capacity: 35, facilities: ['學員體檢證明收發櫃台'], description: '自費機師培訓專案與美國長榮航校送訓諮詢' },
+        ],
+      },
+      {
+        floorNumber: 6,
+        floorLabel: '6F',
+        floorTitle: '航空學院院長室與空中停機坪觀景台',
+        rooms: [
+          { roomCode: 'V-601', name: '航空學院院長室會議大廳', type: '行政空間', floor: 6, capacity: 35, facilities: ['民航局產官學論壇會議室'], description: '綜理全院國際民航組織 (ICAO) 認證事務' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'bldg-s',
+    code: 'S',
+    name: '體育館 (S)',
+    nameEn: 'Gymnasium',
+    description: '全校室內運動賽事體育館，位處理工大樓西側，包含室內標準籃排球場、羽球場與溫水游泳池。',
+    departments: ['體育室', '運動代表隊培訓組'],
+    floors: 4,
+    coordinates: [-11.5, 0, 1.5],
+    color: '#14B8A6',
+    category: 'sports',
+    floorsData: [
+      {
+        floorNumber: 1,
+        floorLabel: '1F',
+        floorTitle: '標準室內溫水游泳池與水療池',
+        rooms: [
+          { roomCode: 'S-101', name: '25 公尺八水道標準溫水游泳池', type: '水上運動場', floor: 1, capacity: 100, facilities: ['臭氧消毒循環過濾系統', '救生員高腳瞭望台', '男女更衣淋浴間'], description: '全校水上運動必修課堂與校隊集訓' },
+          { roomCode: 'S-105', name: '水力按摩 SPA 池與男女烤箱', type: '休閒水療', floor: 1, capacity: 30, facilities: ['氣泡按摩噴頭', '遠紅外線檜木烤箱'], description: '運動員肌肉放鬆與體育課後舒緩' },
+        ],
+      },
+      {
+        floorNumber: 2,
+        floorLabel: '2F',
+        floorTitle: '綜合球場：室內楓木籃球排球場',
+        rooms: [
+          { roomCode: 'S-201', name: '主競賽場：國際標準楓木籃球場', type: '室內球場', floor: 2, capacity: 250, facilities: ['FIBA 認證彈性木地板', '電子計分大看板', '電動升降球架'], description: 'UBA 大專籃球聯賽主場、全校運動會開幕式' },
+          { roomCode: 'S-205', name: '國際標準排球專用場地', type: '球場', floor: 2, capacity: 80, facilities: ['專業排球網柱', '專用高彈力裁判椅'], description: '排球校隊訓練與系際盃排球賽' },
+        ],
+      },
+      {
+        floorNumber: 3,
+        floorLabel: '3F',
+        floorTitle: '專業羽球場與桌球訓練教室',
+        rooms: [
+          { roomCode: 'S-301', name: '八面標準比賽級綠色羽球場', type: '羽球場', floor: 3, capacity: 90, facilities: ['PVC 防滑運動地墊', '防眩專業側排照明燈'], description: '體育羽球課與羽球代表隊訓練空間' },
+          { roomCode: 'S-306', name: '專業桌球訓練室', type: '桌球室', floor: 3, capacity: 50, facilities: ['比賽級紅雙喜球桌 12 張', '全自動發球機 2 部'], description: '桌球基礎教學與校隊戰術演練' },
+        ],
+      },
+      {
+        floorNumber: 4,
+        floorLabel: '4F',
+        floorTitle: '環形看台席與體育室行政辦公室',
+        rooms: [
+          { roomCode: 'S-401', name: '二樓環繞觀眾看台席', type: '觀眾席', floor: 4, capacity: 1200, facilities: ['階梯式看台座椅', '全館廣播擴音系統'], description: '提供全校師生觀賞大型賽事與畢業典禮' },
+          { roomCode: 'S-405', name: '體育室主任室與教師辦公室', type: '行政辦公室', floor: 4, capacity: 30, facilities: ['運動器材借用登記處'], description: '各項運動球具借還與體育常年賽程規劃' },
+        ],
+      },
+    ],
+  },
+];
+
+export const DEMO_REPAIR_TICKETS: RepairTicket[] = [
+  {
+    id: 'rep-01',
+    building: '圖資大樓 (T2)',
+    classroom: 'T2-308',
+    itemType: 'projector',
+    description: '主投影機燈泡閃爍偏紅，HDMI 線頭接觸不良需更換。',
+    status: 'processing',
+    pointsAwarded: 50,
+    timestamp: '2026-11-11 14:20',
+    reporterName: '林朝陽',
+  },
+  {
+    id: 'rep-02',
+    building: '設計大樓 (D)',
+    classroom: 'D-304',
+    itemType: 'aircon',
+    description: '後方冷氣送風異常伴隨異音，濾網待清理。',
+    status: 'resolved',
+    pointsAwarded: 50,
+    timestamp: '2026-11-09 10:15',
+    reporterName: '林朝陽',
+  },
+];
+
+export const DEMO_LOCKERS: SmartLockerBooking[] = [
+  {
+    id: 'lock-881',
+    lockerNumber: 'T2-櫃位 #14',
+    location: '圖資大樓 1F 智慧自取櫃專區',
+    purpose: '課堂用 SONY 4K 數位攝影機 + 腳架',
+    pickupPin: '7291',
+    expiresAt: '2026-11-13 18:00',
+    status: 'active',
+  },
+  {
+    id: 'lock-650',
+    lockerNumber: 'A-櫃位 #08',
+    location: '行政大樓 2F 自助借還站',
+    purpose: 'T2-308 教室備用教學鑰匙',
+    pickupPin: '3318',
+    expiresAt: '2026-11-10 17:00',
+    status: 'retrieved',
+  },
+];
+
+export const DEMO_CAFETERIA: CafeteriaCrowd[] = [
+  {
+    id: 'cafe-1',
+    name: '第一學餐 (行政大樓 B1)',
+    location: '行政大樓地下一樓',
+    level: 'high',
+    percentage: 78,
+    popularStall: '朝陽燒臘排骨飯 & 晨曦手搖',
+    updatedAt: '3 分鐘前',
+  },
+  {
+    id: 'cafe-2',
+    name: '第二學餐 (活動中心 1F)',
+    location: '多功能活動中心一樓',
+    level: 'medium',
+    percentage: 46,
+    popularStall: '綠漾舒肥輕食 & 韓式豆腐鍋',
+    updatedAt: '5 分鐘前',
+  },
+];
+
+export const DEMO_LEAVE_RECORDS: LeaveRecord[] = [
+  {
+    id: 'leave-1',
+    courseName: '跨文化溝通與國際視野',
+    date: '2026-11-07',
+    periods: '第 3, 4 節',
+    reason: '流感身體不適前往就醫，已檢附診斷證明書。',
+    status: 'approved',
+  },
+  {
+    id: 'leave-2',
+    courseName: '科技創業與專利佈局',
+    date: '2026-11-14',
+    periods: '第 6, 7 節',
+    reason: '代表系所參加全國大專黑客松培訓工作坊 (公假)。',
+    status: 'pending',
+    warningNote: '目前該門課程缺席時數 0 節 (安全無曠課預警)。',
+  },
+];
