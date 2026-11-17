@@ -11,17 +11,35 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        manifestFilename: 'manifest.json',
+        includeAssets: [
+          'favicon.ico',
+          'favicon-32x32.png',
+          'icon.svg',
+          'apple-touch-icon.png',
+          'pwa-192x192.png',
+          'pwa-512x512.png',
+          'pwa-maskable-512x512.png',
+        ],
         manifest: {
           id: '/',
-          name: 'Campus Life CYUT 朝陽科技大學智慧校園',
+          name: 'Campus Life CYUT | 朝陽校園核心系統中心',
           short_name: 'CampusCYUT',
-          description: '朝陽科技大學全方位智慧校園 PWA 網頁應用。整合課表、Tronclass、AI 學習助手、積分美食盲盒、二級市場與 3D 校園地圖。',
+          description: '朝陽科技大學全方位智慧校園 PWA 網頁應用。整合課表、電子學生證、Tronclass 教務、Google 授權雙模式 Gemini AI 學習助手、學生市集、校園社群、大眾運輸動態與 3D 校園地圖。',
           theme_color: '#0B0F17',
           background_color: '#0B0F17',
           display: 'standalone',
+          orientation: 'portrait-primary',
           start_url: '/',
           scope: '/',
+          lang: 'zh-TW',
           icons: [
+            {
+              src: '/icon.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'any',
+            },
             {
               src: '/pwa-192x192.png',
               sizes: '192x192',
@@ -35,7 +53,7 @@ export default defineConfig(() => {
               purpose: 'any',
             },
             {
-              src: '/pwa-512x512.png',
+              src: '/pwa-maskable-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',

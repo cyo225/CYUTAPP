@@ -139,7 +139,7 @@ export const Campus3DMap: React.FC<Campus3DMapProps> = ({ onSelectBuilding }) =>
       // Floor Label Badge attached directly to the left edge of the 3D slab
       const floorEl = document.createElement('div');
       floorEl.className =
-        'px-2 py-0.5 rounded-md bg-[#E50914] text-white font-mono font-extrabold text-[11px] shadow-lg border border-red-400/50 select-none pointer-events-none';
+        'px-2 py-0.5 rounded-md bg-accent text-white font-mono font-extrabold text-[11px] shadow-lg border border-accent-soft select-none pointer-events-none';
       floorEl.textContent = floor.floorLabel;
       const floorLabelObj = new CSS2DObject(floorEl);
       floorLabelObj.position.set(-width / 2 - 0.45, slabHeight / 2 + 0.3, depth / 2);
@@ -376,7 +376,7 @@ export const Campus3DMap: React.FC<Campus3DMapProps> = ({ onSelectBuilding }) =>
     dirLight.shadow.normalBias = 0.02;
     scene.add(dirLight);
 
-    const rimLight = new THREE.DirectionalLight(0xe50914, 0.55);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
     rimLight.position.set(-16, 12, -16);
     scene.add(rimLight);
 
@@ -533,7 +533,7 @@ export const Campus3DMap: React.FC<Campus3DMapProps> = ({ onSelectBuilding }) =>
       const badgeEl = document.createElement('button');
       badgeEl.type = 'button';
       badgeEl.className =
-        'px-2 py-1 rounded-lg bg-slate-950/90 hover:bg-[#E50914] text-white border border-slate-700/80 shadow-lg flex items-center gap-1.5 transition-colors cursor-pointer pointer-events-auto select-none whitespace-nowrap';
+        'px-2 py-1 rounded-lg bg-slate-950/90 hover:bg-accent-hover text-white border border-slate-700/80 shadow-lg flex items-center gap-1.5 transition-colors cursor-pointer pointer-events-auto select-none whitespace-nowrap';
       badgeEl.innerHTML = `
         <span style="background:${bldg.color}; padding: 1px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 800; color: #fff;">${bldg.code}</span>
         <span style="font-size: 11px; font-weight: 700;">${bldg.name.replace(/\s*\([^)]*\)/, '')}</span>
@@ -689,7 +689,7 @@ export const Campus3DMap: React.FC<Campus3DMapProps> = ({ onSelectBuilding }) =>
   }, []);
 
   return (
-    <div className="relative w-full h-[78vh] min-h-[540px] md:h-[760px] rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F17] shadow-2xl touch-none">
+    <div className="relative w-full h-[78vh] min-h-[540px] md:h-[760px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-[#0B0F17] shadow-xl dark:shadow-2xl touch-none">
       {/* Full-Bleed 3D WebGL + CSS2DRenderer Mount (90%+ unobstructed canvas) */}
       <div ref={containerRef} className="w-full h-full relative" />
 
@@ -699,14 +699,14 @@ export const Campus3DMap: React.FC<Campus3DMapProps> = ({ onSelectBuilding }) =>
           <div className="flex items-center gap-2 pointer-events-auto">
             <button
               onClick={returnToCampusMap}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-[#E50914] hover:bg-red-600 rounded-xl shadow-lg shadow-red-950/60 active:scale-95 transition whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-accent hover:bg-accent-hover rounded-xl shadow-lg shadow-accent active:scale-95 transition whitespace-nowrap"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>返回全校地圖</span>
             </button>
 
             <div className="flex items-center gap-2 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/80 shadow-lg">
-              <Layers className="w-3.5 h-3.5 text-[#E50914] shrink-0" />
+              <Layers className="w-3.5 h-3.5 text-accent shrink-0" />
               <span className="text-xs md:text-sm font-extrabold text-white truncate max-w-[180px] sm:max-w-xs">
                 {selectedBuilding.code} {selectedBuilding.name.replace(/\s*\([^)]*\)/, '')}
               </span>
@@ -714,7 +714,7 @@ export const Campus3DMap: React.FC<Campus3DMapProps> = ({ onSelectBuilding }) =>
           </div>
         ) : (
           <div className="flex items-center gap-2 bg-slate-900/85 px-3 py-2 rounded-xl border border-slate-700/80 shadow-lg pointer-events-auto">
-            <Compass className="w-4 h-4 text-[#E50914] shrink-0" />
+            <Compass className="w-4 h-4 text-accent shrink-0" />
             <span className="text-xs font-bold text-white whitespace-nowrap">
               點選建築檢視 3D 樓層透視
             </span>

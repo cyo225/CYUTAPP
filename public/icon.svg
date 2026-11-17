@@ -1,37 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0B0F17"/>
-      <stop offset="100%" stop-color="#1E293B"/>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1B2233" />
+      <stop offset="55%" stop-color="#0F141F" />
+      <stop offset="100%" stop-color="#070A10" />
     </linearGradient>
-    <linearGradient id="redGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FF1E27"/>
-      <stop offset="100%" stop-color="#B20710"/>
-    </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="16" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
+    <radialGradient id="crimsonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E50914" stop-opacity="0.28" />
+      <stop offset="70%" stop-color="#E50914" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#E50914" stop-opacity="0" />
+    </radialGradient>
   </defs>
-  <!-- Background -->
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
-  
-  <!-- Outer Glow Ring -->
-  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#redGlow)" stroke-width="6" opacity="0.3"/>
-  <circle cx="256" cy="256" r="160" fill="none" stroke="#E50914" stroke-width="2" stroke-dasharray="12 8" opacity="0.4"/>
-
-  <!-- CYUT Stylized 'C' & Falcon Wing / Netflix Arch Mark -->
-  <g filter="url(#glow)">
-    <!-- Main Red Ribbon Curve -->
-    <path d="M160 140 C 220 120, 320 120, 360 160 C 375 175, 375 200, 350 215 C 310 238, 230 240, 180 270 C 145 292, 140 330, 160 360 C 190 400, 270 410, 340 380" 
-          fill="none" stroke="url(#redGlow)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
-    
-    <!-- Central Torch / Tech Diamond -->
-    <polygon points="256,190 286,256 256,322 226,256" fill="#FFFFFF"/>
-    <polygon points="256,210 276,256 256,302 236,256" fill="#E50914"/>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect x="4" y="4" width="504" height="504" rx="108" stroke="#E50914" stroke-opacity="0.38" stroke-width="4" />
+  <circle cx="256" cy="256" r="210" fill="url(#crimsonGlow)" />
+  <g transform="translate(56, 56) scale(10)">
+    <path
+      d="M20 4L34 12V28L20 36L6 28V12L20 4Z"
+      stroke="#E50914"
+      stroke-width="2.7"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M25.5 15.2C24.2 13.8 22.3 13 20.1 13C15.9 13 12.8 16 12.8 20C12.8 24 15.9 27 20.1 27C22.4 27 24.3 26.1 25.6 24.7"
+      stroke="#FFFFFF"
+      stroke-width="2.9"
+      stroke-linecap="round"
+    />
+    <circle cx="27" cy="20" r="2.25" fill="#E50914" />
   </g>
-  
-  <!-- Subtitle Text -->
-  <text x="256" y="440" text-anchor="middle" fill="#94A3B8" font-family="Outfit, sans-serif" font-size="28" font-weight="700" letter-spacing="6">CYUT CAMPUS</text>
 </svg>

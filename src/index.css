@@ -2,37 +2,223 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ============================================================================
+   Dynamic Accent Theme Tokens (Default: Ocean Blue)
+   ============================================================================ */
+:root,
+:root[data-accent="ocean"] {
+  --accent: #0284c7;
+  --accent-bright: #0ea5e9;
+  --accent-hover: #0369a1;
+  --accent-on: #ffffff;
+  --accent-text: #0284c7;
+  --accent-soft: rgba(14, 165, 233, 0.12);
+  --accent-soft-border: rgba(14, 165, 233, 0.35);
+  --accent-glow: rgba(14, 165, 233, 0.38);
+  --accent-ambient-bg: #e0f2fe;
+  --accent-ambient-dark: #082032;
+}
+
+.dark:root,
+.dark:root[data-accent="ocean"] {
+  --accent: #0284c7;
+  --accent-bright: #38bdf8;
+  --accent-hover: #0ea5e9;
+  --accent-on: #ffffff;
+  --accent-text: #38bdf8;
+  --accent-soft: rgba(14, 165, 233, 0.16);
+  --accent-soft-border: rgba(56, 189, 248, 0.45);
+  --accent-glow: rgba(14, 165, 233, 0.48);
+}
+
+:root[data-accent="lavender"] {
+  --accent: #7c3aed;
+  --accent-bright: #8b5cf6;
+  --accent-hover: #6d28d9;
+  --accent-on: #ffffff;
+  --accent-text: #7c3aed;
+  --accent-soft: rgba(139, 92, 246, 0.12);
+  --accent-soft-border: rgba(139, 92, 246, 0.38);
+  --accent-glow: rgba(139, 92, 246, 0.38);
+  --accent-ambient-bg: #ede9fe;
+  --accent-ambient-dark: #1d1136;
+}
+
+.dark:root[data-accent="lavender"] {
+  --accent: #7c3aed;
+  --accent-bright: #a78bfa;
+  --accent-hover: #8b5cf6;
+  --accent-on: #ffffff;
+  --accent-text: #a78bfa;
+  --accent-soft: rgba(139, 92, 246, 0.18);
+  --accent-soft-border: rgba(167, 139, 250, 0.45);
+  --accent-glow: rgba(139, 92, 246, 0.48);
+}
+
+:root[data-accent="forest"] {
+  --accent: #059669;
+  --accent-bright: #10b981;
+  --accent-hover: #047857;
+  --accent-on: #ffffff;
+  --accent-text: #059669;
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --accent-soft-border: rgba(16, 185, 129, 0.38);
+  --accent-glow: rgba(16, 185, 129, 0.36);
+  --accent-ambient-bg: #d1fae5;
+  --accent-ambient-dark: #07261c;
+}
+
+.dark:root[data-accent="forest"] {
+  --accent: #059669;
+  --accent-bright: #34d399;
+  --accent-hover: #10b981;
+  --accent-on: #ffffff;
+  --accent-text: #34d399;
+  --accent-soft: rgba(16, 185, 129, 0.16);
+  --accent-soft-border: rgba(52, 211, 153, 0.45);
+  --accent-glow: rgba(16, 185, 129, 0.45);
+}
+
+:root[data-accent="gold"] {
+  --accent: #d97706;
+  --accent-bright: #f59e0b;
+  --accent-hover: #b45309;
+  --accent-on: #ffffff;
+  --accent-text: #b45309;
+  --accent-soft: rgba(245, 158, 11, 0.14);
+  --accent-soft-border: rgba(245, 158, 11, 0.42);
+  --accent-glow: rgba(245, 158, 11, 0.36);
+  --accent-ambient-bg: #fef3c7;
+  --accent-ambient-dark: #291a05;
+}
+
+.dark:root[data-accent="gold"] {
+  --accent: #d97706;
+  --accent-bright: #fbbf24;
+  --accent-hover: #f59e0b;
+  --accent-on: #ffffff;
+  --accent-text: #fbbf24;
+  --accent-soft: rgba(245, 158, 11, 0.16);
+  --accent-soft-border: rgba(251, 191, 36, 0.45);
+  --accent-glow: rgba(245, 158, 11, 0.45);
+}
+
+:root[data-accent="crimson"] {
+  --accent: #e50914;
+  --accent-bright: #ef4444;
+  --accent-hover: #dc2626;
+  --accent-on: #ffffff;
+  --accent-text: #dc2626;
+  --accent-soft: rgba(229, 9, 20, 0.11);
+  --accent-soft-border: rgba(229, 9, 20, 0.36);
+  --accent-glow: rgba(229, 9, 20, 0.38);
+  --accent-ambient-bg: #fee2e2;
+  --accent-ambient-dark: #2a0b10;
+}
+
+.dark:root[data-accent="crimson"] {
+  --accent: #e50914;
+  --accent-bright: #f87171;
+  --accent-hover: #dc2626;
+  --accent-on: #ffffff;
+  --accent-text: #ef4444;
+  --accent-soft: rgba(229, 9, 20, 0.16);
+  --accent-soft-border: rgba(239, 68, 68, 0.45);
+  --accent-glow: rgba(229, 9, 20, 0.48);
+}
+
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: #0B0F17;
-    color: #F1F5F9;
     overflow-x: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   }
+
+  ::selection {
+    background-color: var(--accent);
+    color: #ffffff;
+  }
 }
 
-/* Custom scrollbar for horizontal billboard rows */
+/* ============================================================================
+   Reusable Dynamic Theme Utilities
+   ============================================================================ */
+.bg-accent {
+  background-color: var(--accent);
+  color: var(--accent-on);
+}
+
+.hover\:bg-accent-hover:hover {
+  background-color: var(--accent-hover);
+}
+
+.text-accent {
+  color: var(--accent-text);
+}
+
+.fill-accent {
+  fill: var(--accent-text);
+}
+
+.bg-accent-soft {
+  background-color: var(--accent-soft);
+}
+
+.border-accent {
+  border-color: var(--accent);
+}
+
+.border-accent-soft {
+  border-color: var(--accent-soft-border);
+}
+
+.hover\:border-accent:hover {
+  border-color: var(--accent-soft-border);
+}
+
+.focus\:border-accent:focus {
+  border-color: var(--accent);
+}
+
+.shadow-accent {
+  box-shadow: 0 8px 24px -6px var(--accent-glow);
+}
+
+.glow-accent {
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+
+.focus-ring-accent:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar linked to active theme accent */
 .netflix-scrollbar::-webkit-scrollbar {
   height: 6px;
   width: 6px;
 }
 
 .netflix-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(148, 163, 184, 0.15);
   border-radius: 9999px;
 }
 
+.dark .netflix-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
 .netflix-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(229, 9, 20, 0.4);
+  background: var(--accent-soft-border);
   border-radius: 9999px;
 }
 
 .netflix-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(229, 9, 20, 0.8);
+  background: var(--accent);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -42,3 +228,25 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@keyframes wheelHubBreathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 18px var(--accent-glow), 0 8px 20px rgba(0, 0, 0, 0.55);
+  }
+  50% {
+    transform: scale(1.045);
+    box-shadow: 0 0 30px var(--accent-glow), 0 0 46px rgba(250, 204, 21, 0.28);
+  }
+}
+
+.wheel-hub-breathe {
+  animation: wheelHubBreathe 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel-hub-breathe {
+    animation: none;
+  }
+}
+

@@ -19,17 +19,19 @@ interface AuthGatewayProps {
   existingMerchants: MerchantStore[];
   onStudentLogin: (studentNo: string, name: string, dept: string) => void;
   onTeacherLogin: (facultyNo: string, name: string, dept: string) => void;
+  onTeacherGoogleLogin: (email: string, name: string, dept: string) => void;
   onMerchantLoginExisting: (merchant: MerchantStore) => void;
   onMerchantRegisterAndPay: (merchant: Omit<MerchantStore, 'id' | 'updatedAt'>) => void;
   onDevBypassLogin: (role: UserRole) => void;
 }
 
-const HARDCODED_DEV_CODE = 'tkr1026';
+const HARDCODED_DEV_CODE = 'root';
 
 export const AuthGateway: React.FC<AuthGatewayProps> = ({
   existingMerchants,
   onStudentLogin,
   onTeacherLogin,
+  onTeacherGoogleLogin,
   onMerchantLoginExisting,
   onMerchantRegisterAndPay,
   onDevBypassLogin,
@@ -48,6 +50,7 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
   const [facultyPassword, setFacultyPassword] = useState('');
   const [facultyName, setFacultyName] = useState('');
   const [facultyDept, setFacultyDept] = useState('資訊學院 · 資訊工程系');
+  const [teacherGoogleEmail, setTeacherGoogleEmail] = useState('');
   const [teacherError, setTeacherError] = useState<string | null>(null);
 
   // Merchant login & onboarding state
@@ -75,12 +78,21 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
   const handleStudentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = studentNo.trim();
+    if (trimmed === HARDCODED_DEV_CODE) {
+      setStudentError(null);
+      onDevBypassLogin('student');
+      return;
+    }
     if (!/^[sS]/.test(trimmed)) {
       setStudentError('學號開頭必須是英文大小寫 s 或 S（例如：s11007042）');
       return;
     }
     if (trimmed.length < 4) {
       setStudentError('請輸入完整有效的朝陽學生學號');
+      return;
+    }
+    if (!studentPassword.trim()) {
+      setStudentError('請輸入學生入口密碼');
       return;
     }
     setStudentError(null);
@@ -90,6 +102,11 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
   const handleTeacherSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = facultyNo.trim();
+    if (trimmed === HARDCODED_DEV_CODE) {
+      setTeacherError(null);
+      onDevBypassLogin('teacher');
+      return;
+    }
     if (!/^[tT]/.test(trimmed)) {
       setTeacherError('教職員代號開頭必須是英文大小寫 t 或 T（例如：t940218）');
       return;
@@ -98,12 +115,40 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
       setTeacherError('請輸入完整有效的教師代號');
       return;
     }
+    if (!facultyPassword.trim()) {
+      setTeacherError('請輸入教職員入口密碼');
+      return;
+    }
     setTeacherError(null);
     onTeacherLogin(trimmed, facultyName.trim() || '朝陽教師', facultyDept);
   };
 
+  const handleTeacherGoogleSignIn = () => {
+    const cleanEmail = (
+      teacherGoogleEmail.trim() ||
+      (facultyNo.trim() && /^[tT]/.test(facultyNo.trim())
+        ? `${facultyNo.trim().toLowerCase()}@gm.cyut.edu.tw`
+        : 't940218@gm.cyut.edu.tw')
+    ).toLowerCase();
+    if (!cleanEmail.includes('@')) {
+      setTeacherError('請輸入有效的教師 Google 電子郵件信箱');
+      return;
+    }
+    setTeacherError(null);
+    onTeacherGoogleLogin(
+      cleanEmail,
+      facultyName.trim() || '陳明哲 教授',
+      facultyDept
+    );
+  };
+
   const handleMerchantEmailProceed = (emailToUse: string) => {
     const cleanEmail = emailToUse.trim().toLowerCase();
+    if (cleanEmail === HARDCODED_DEV_CODE) {
+      setMerchantError(null);
+      onDevBypassLogin('merchant');
+      return;
+    }
     if (!cleanEmail || !cleanEmail.includes('@')) {
       setMerchantError('請輸入有效的商家電子郵件信箱');
       return;
@@ -187,19 +232,22 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
   };
 
   return (
-    <div className="min-h-screen w-full bg-[radial-gradient(ellipse_at_top,#1d0b10_0%,#0B0F17_52%,#06090F_100%)] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 md:p-10 relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-[#0B0F17] text-slate-900 dark:text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 md:p-10 relative overflow-x-hidden transition-colors">
       {/* Subtle Background Ambient Flares */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[560px] h-[280px] bg-[#E50914]/12 rounded-full blur-[120px] pointer-events-none" />
+      <div
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-[560px] h-[280px] rounded-full blur-[120px] pointer-events-none"
+        style={{ backgroundColor: 'var(--accent-glow)', opacity: 0.24 }}
+      />
 
       <div className="w-full max-w-4xl relative z-10">
         {/* Top Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#191F2E] to-[#0B0F17] border border-[#E50914]/60 shadow-[0_0_20px_rgba(229,9,20,0.4)] flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl bg-slate-900 dark:bg-gradient-to-br dark:from-[#191F2E] dark:to-[#0B0F17] border border-accent-soft glow-accent flex items-center justify-center">
               <svg viewBox="0 0 40 40" className="w-6 h-6" fill="none">
                 <path
                   d="M20 4L34 12V28L20 36L6 28V12L20 4Z"
-                  stroke="#E50914"
+                  stroke="var(--accent-bright)"
                   strokeWidth="2.5"
                   strokeLinejoin="round"
                 />
@@ -209,20 +257,20 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                   strokeWidth="2.8"
                   strokeLinecap="round"
                 />
-                <circle cx="27" cy="20" r="2.2" fill="#E50914" />
+                <circle cx="27" cy="20" r="2.2" fill="var(--accent-bright)" />
               </svg>
             </div>
-            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              CAMPUS LIFE <span className="text-[#E50914]">CYUT</span>
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              CAMPUS LIFE <span className="text-accent">CYUT</span>
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             請選擇您的校園身分模式完成驗證登入
           </p>
         </div>
 
         {/* 3 Role Tabs Switcher */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6 max-w-xl mx-auto p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6 max-w-xl mx-auto p-1.5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           <button
             type="button"
             onClick={() => {
@@ -231,8 +279,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
             }}
             className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all min-h-[44px] ${
               selectedRole === 'student'
-                ? 'bg-[#E50914] text-white shadow-lg shadow-red-950/50'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-accent shadow-accent'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <GraduationCap className="w-4 h-4 shrink-0" />
@@ -247,8 +295,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
             }}
             className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all min-h-[44px] ${
               selectedRole === 'teacher'
-                ? 'bg-[#E50914] text-white shadow-lg shadow-red-950/50'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-accent shadow-accent'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <BookOpenCheck className="w-4 h-4 shrink-0" />
@@ -263,8 +311,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
             }}
             className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all min-h-[44px] ${
               selectedRole === 'merchant'
-                ? 'bg-[#E50914] text-white shadow-lg shadow-red-950/50'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-accent shadow-accent'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Store className="w-4 h-4 shrink-0" />
@@ -273,7 +321,7 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
         </div>
 
         {/* Role Login Card Container (with bottom-right Developer Test Button on EVERY mode) */}
-        <div className="relative w-full max-w-2xl mx-auto rounded-3xl bg-slate-900/90 border border-slate-800 p-6 sm:p-8 pb-16 shadow-2xl backdrop-blur-md">
+        <div className="relative w-full max-w-2xl mx-auto rounded-3xl bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 pb-16 shadow-xl dark:shadow-2xl backdrop-blur-md">
           <AnimatePresence mode="wait">
             {/* 1. STUDENT MODE */}
             {selectedRole === 'student' && (
@@ -286,24 +334,24 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                 onSubmit={handleStudentSubmit}
                 className="space-y-4"
               >
-                <div className="border-b border-slate-800 pb-4">
-                  <h2 className="text-lg sm:text-xl font-bold text-white">學生身分登入</h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    學號開頭必須為英文大小寫 <span className="font-mono text-white font-bold">s</span>（例如：<span className="font-mono">s11007042</span>）
+                <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">學生身分登入</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    學號開頭必須為英文大小寫 <span className="font-mono text-slate-900 dark:text-white font-bold">s</span>（例如：<span className="font-mono">s11007042</span>）
                   </p>
                 </div>
 
                 {studentError && (
-                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/80 text-xs text-red-200 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-[#E50914] shrink-0" />
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-xs text-rose-700 dark:text-rose-200 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                     <span>{studentError}</span>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      朝陽學號 <span className="text-[#E50914]">*</span>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      朝陽學號 <span className="text-accent">*</span>
                     </label>
                     <input
                       type="text"
@@ -314,27 +362,27 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                         setStudentError(null);
                       }}
                       placeholder="例如：s11007042"
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-[#E50914]"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-mono focus:outline-none focus:border-accent"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      登入密碼 <span className="text-[#E50914]">*</span>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      登入密碼 <span className="text-accent">*</span>
                     </label>
                     <input
                       type="password"
-                      required
+                      required={studentNo.trim() !== HARDCODED_DEV_CODE}
                       value={studentPassword}
                       onChange={(e) => setStudentPassword(e.target.value)}
                       placeholder="請輸入學生入口密碼"
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       姓名（選填）
                     </label>
                     <input
@@ -342,17 +390,17 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                       value={studentName}
                       onChange={(e) => setStudentName(e.target.value)}
                       placeholder="例如：林朝陽"
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       就讀系所
                     </label>
                     <select
                       value={studentDept}
                       onChange={(e) => setStudentDept(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                     >
                       <option value="資訊工程系">資訊工程系</option>
                       <option value="資訊管理系">資訊管理系</option>
@@ -369,7 +417,7 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full sm:w-auto px-7 py-3 rounded-xl bg-[#E50914] hover:bg-red-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-950/50 transition active:scale-[0.98]"
+                    className="w-full sm:w-auto px-7 py-3 rounded-xl bg-accent hover:bg-accent-hover text-sm font-bold flex items-center justify-center gap-2 shadow-accent transition active:scale-[0.98]"
                   >
                     <span>進入學生智慧校園</span>
                     <ArrowRight className="w-4 h-4" />
@@ -389,24 +437,24 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                 onSubmit={handleTeacherSubmit}
                 className="space-y-4"
               >
-                <div className="border-b border-slate-800 pb-4">
-                  <h2 className="text-lg sm:text-xl font-bold text-white">教師身分登入</h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    教職員代號開頭必須為英文大小寫 <span className="font-mono text-white font-bold">t</span>（例如：<span className="font-mono">t940218</span>），登入後可啟用 AI 自動出題、課綱整理與成績計算工具。
+                <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">教師身分登入</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    教職員代號開頭必須為英文大小寫 <span className="font-mono text-slate-900 dark:text-white font-bold">t</span>（例如：<span className="font-mono">t940218</span>），登入後可啟用 AI 自動出題、課綱整理與成績計算工具。
                   </p>
                 </div>
 
                 {teacherError && (
-                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/80 text-xs text-red-200 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-[#E50914] shrink-0" />
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-xs text-rose-700 dark:text-rose-200 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                     <span>{teacherError}</span>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      教職員代號 <span className="text-[#E50914]">*</span>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      教職員代號 <span className="text-accent">*</span>
                     </label>
                     <input
                       type="text"
@@ -417,27 +465,27 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                         setTeacherError(null);
                       }}
                       placeholder="例如：t940218"
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-[#E50914]"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-mono focus:outline-none focus:border-accent"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      教師密碼 <span className="text-[#E50914]">*</span>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      教師密碼 <span className="text-accent">*</span>
                     </label>
                     <input
                       type="password"
-                      required
+                      required={facultyNo.trim() !== HARDCODED_DEV_CODE}
                       value={facultyPassword}
                       onChange={(e) => setFacultyPassword(e.target.value)}
                       placeholder="請輸入教職員入口密碼"
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       教師姓名（選填）
                     </label>
                     <input
@@ -445,17 +493,17 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                       value={facultyName}
                       onChange={(e) => setFacultyName(e.target.value)}
                       placeholder="例如：陳教授"
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       所屬學院 / 系所
                     </label>
                     <select
                       value={facultyDept}
                       onChange={(e) => setFacultyDept(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                      className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                     >
                       <option value="資訊學院 · 資訊工程系">資訊學院 · 資訊工程系</option>
                       <option value="設計學院 · 視覺傳達設計系">設計學院 · 視覺傳達設計系</option>
@@ -467,14 +515,58 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 space-y-4">
                   <button
                     type="submit"
-                    className="w-full sm:w-auto px-7 py-3 rounded-xl bg-[#E50914] hover:bg-red-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-950/50 transition active:scale-[0.98]"
+                    className="w-full sm:w-auto px-7 py-3 rounded-xl bg-accent hover:bg-accent-hover text-sm font-bold flex items-center justify-center gap-2 shadow-accent transition active:scale-[0.98]"
                   >
                     <span>進入教師授課系統</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
+
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-slate-200 dark:border-slate-800" />
+                    <span className="shrink mx-3 text-xs text-slate-500">或使用教師 Google 帳號一鍵授權登入</span>
+                    <div className="flex-grow border-t border-slate-200 dark:border-slate-800" />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <input
+                      type="email"
+                      value={teacherGoogleEmail}
+                      onChange={(e) => {
+                        setTeacherGoogleEmail(e.target.value);
+                        setTeacherError(null);
+                      }}
+                      placeholder="教師 Google 信箱（選填，預設 t940218@gm.cyut.edu.tw）"
+                      className="flex-1 px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-mono focus:outline-none focus:border-accent"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleTeacherGoogleSignIn}
+                      className="py-2.5 px-5 rounded-xl bg-slate-100 dark:bg-white hover:bg-slate-200 dark:hover:bg-slate-100 text-slate-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-200 dark:border-transparent shrink-0 transition"
+                    >
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          fill="#4285F4"
+                          d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"
+                        />
+                      </svg>
+                      <span>使用 Google 帳號登入</span>
+                    </button>
+                  </div>
                 </div>
               </motion.form>
             )}
@@ -491,22 +583,22 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
               >
                 {merchantStep === 'auth' && (
                   <div className="space-y-5">
-                    <div className="border-b border-slate-800 pb-4">
-                      <h2 className="text-lg sm:text-xl font-bold text-white">特約商家登入 / 申請上架</h2>
-                      <p className="text-xs text-slate-400 mt-1">
+                    <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+                      <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">特約商家登入 / 申請上架</h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         支援 Email 或 Google 快速驗證，首次登入需完成門市基本資料填寫與合作方案付款後上架至學生市集。
                       </p>
                     </div>
 
                     {merchantError && (
-                      <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/80 text-xs text-red-200 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-[#E50914] shrink-0" />
+                      <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-xs text-rose-700 dark:text-rose-200 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                         <span>{merchantError}</span>
                       </div>
                     )}
 
                     <div className="space-y-3">
-                      <label className="block text-xs font-semibold text-slate-300">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                         商家登入 Email
                       </label>
                       <div className="flex flex-col sm:flex-row gap-2.5">
@@ -518,12 +610,12 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                             setMerchantError(null);
                           }}
                           placeholder="store@example.com（已合作可輸入 morningtea@cyut-partner.tw）"
-                          className="flex-1 px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                          className="flex-1 px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                         />
                         <button
                           type="button"
                           onClick={() => handleMerchantEmailProceed(merchantEmail)}
-                          className="px-5 py-2.5 rounded-xl bg-[#E50914] hover:bg-red-600 text-white text-xs sm:text-sm font-bold whitespace-nowrap transition flex items-center justify-center gap-1.5"
+                          className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-xs sm:text-sm font-bold whitespace-nowrap transition flex items-center justify-center gap-1.5 shadow-accent"
                         >
                           <Mail className="w-4 h-4" />
                           <span>Email 登入 / 註冊</span>
@@ -532,15 +624,15 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                     </div>
 
                     <div className="relative flex py-1 items-center">
-                      <div className="flex-grow border-t border-slate-800" />
+                      <div className="flex-grow border-t border-slate-200 dark:border-slate-800" />
                       <span className="shrink mx-3 text-xs text-slate-500">或使用第三方帳號</span>
-                      <div className="flex-grow border-t border-slate-800" />
+                      <div className="flex-grow border-t border-slate-200 dark:border-slate-800" />
                     </div>
 
                     <button
                       type="button"
                       onClick={handleGoogleMerchantSignIn}
-                      className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm flex items-center justify-center gap-2.5 transition"
+                      className="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-white hover:bg-slate-200 dark:hover:bg-slate-100 text-slate-900 font-bold text-sm flex items-center justify-center gap-2.5 border border-slate-200 dark:border-transparent transition"
                     >
                       <svg className="w-4 h-4" viewBox="0 0 24 24">
                         <path
@@ -567,25 +659,25 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                 {merchantStep === 'onboarding' && (
                   <form onSubmit={handleOnboardingNext} className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                       <div>
-                        <h2 className="text-lg font-bold text-white">首次商家上架資料填寫</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">首次商家上架資料填寫</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                           登入帳號：{merchantEmail} · 選填項目之後可於商家後台隨時修改
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => setMerchantStep('auth')}
-                        className="text-xs text-slate-400 hover:text-white"
+                        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       >
                         更換帳號
                       </button>
                     </div>
 
                     {merchantError && (
-                      <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/80 text-xs text-red-200 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-[#E50914] shrink-0" />
+                      <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-xs text-rose-700 dark:text-rose-200 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                         <span>{merchantError}</span>
                       </div>
                     )}
@@ -593,8 +685,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                     {/* Required Fields */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">
-                          店名 <span className="text-[#E50914]">*必填</span>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          店名 <span className="text-accent">*必填</span>
                         </label>
                         <input
                           type="text"
@@ -602,12 +694,12 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                           value={storeName}
                           onChange={(e) => setStoreName(e.target.value)}
                           placeholder="例如：朝陽職人早午餐"
-                          className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                          className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">
-                          聯絡電話 <span className="text-[#E50914]">*必填</span>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          聯絡電話 <span className="text-accent">*必填</span>
                         </label>
                         <input
                           type="tel"
@@ -615,15 +707,15 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                           value={storePhone}
                           onChange={(e) => setStorePhone(e.target.value)}
                           placeholder="例如：04-2332-8899"
-                          className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-[#E50914]"
+                          className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-mono focus:outline-none focus:border-accent"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">
-                          門市地址 <span className="text-[#E50914]">*必填</span>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          門市地址 <span className="text-accent">*必填</span>
                         </label>
                         <input
                           type="text"
@@ -631,17 +723,17 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                           value={storeAddress}
                           onChange={(e) => setStoreAddress(e.target.value)}
                           placeholder="台中市霧峰區吉峰東路..."
-                          className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                          className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                           商家類別
                         </label>
                         <select
                           value={storeCategory}
                           onChange={(e) => setStoreCategory(e.target.value)}
-                          className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white"
+                          className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white"
                         >
                           <option value="餐飲美食">餐飲美食</option>
                           <option value="手搖飲品">手搖飲品</option>
@@ -653,8 +745,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                     {/* Subscription Plan Selection */}
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-2">
-                        上架方案選擇 <span className="text-[#E50914]">*必填</span>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        上架方案選擇 <span className="text-accent">*必填</span>
                       </label>
                       <div className="grid grid-cols-3 gap-2">
                         {(['monthly', 'quarterly', 'yearly'] as MerchantPlan[]).map((pKey) => (
@@ -664,12 +756,12 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                             onClick={() => setStorePlan(pKey)}
                             className={`p-3 rounded-xl border text-left transition ${
                               storePlan === pKey
-                                ? 'bg-[#E50914]/15 border-[#E50914] text-white'
-                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                                ? 'bg-accent-soft border-accent text-slate-900 dark:text-white'
+                                : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                             }`}
                           >
                             <div className="text-xs font-bold">{planDetails[pKey].label}</div>
-                            <div className="text-xs font-mono font-extrabold text-amber-400 mt-1">
+                            <div className="text-xs font-mono font-extrabold text-amber-600 dark:text-amber-400 mt-1">
                               {planDetails[pKey].price}
                             </div>
                           </button>
@@ -678,8 +770,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                     </div>
 
                     {/* Optional Fields */}
-                    <div className="pt-2 border-t border-slate-800/80 space-y-3">
-                      <div className="text-xs font-semibold text-slate-400">
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-3">
+                      <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                         選填項目（若未填寫將於學生市集自動隱藏，日後可隨時編輯）
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -688,14 +780,14 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                           value={storeHours}
                           onChange={(e) => setStoreHours(e.target.value)}
                           placeholder="營業時間（選填，如 10:00-20:00）"
-                          className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                          className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                         />
                         <input
                           type="url"
                           value={storeWebsite}
                           onChange={(e) => setStoreWebsite(e.target.value)}
                           placeholder="官方網站 URL（選填）"
-                          className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                          className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                         />
                       </div>
                       <input
@@ -703,11 +795,11 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                         value={storePromo}
                         onChange={(e) => setStorePromo(e.target.value)}
                         placeholder="最新活動優惠（選填，如：學生證免費加珍珠）"
-                        className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#E50914]"
+                        className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                       />
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950 border border-dashed border-slate-700 hover:border-slate-500 cursor-pointer text-xs text-slate-300">
-                          <ImagePlus className="w-4 h-4 text-[#E50914]" />
+                        <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                          <ImagePlus className="w-4 h-4 text-accent" />
                           <span className="truncate">
                             {storeCoverImg ? '已選擇店面照片' : '上傳店面照片（選填）'}
                           </span>
@@ -718,8 +810,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                             className="hidden"
                           />
                         </label>
-                        <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950 border border-dashed border-slate-700 hover:border-slate-500 cursor-pointer text-xs text-slate-300">
-                          <ImagePlus className="w-4 h-4 text-amber-400" />
+                        <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                          <ImagePlus className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                           <span className="truncate">
                             {storeMenuImg ? '已選擇菜單圖片' : '上傳菜單圖片（選填）'}
                           </span>
@@ -735,7 +827,7 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                     <button
                       type="submit"
-                      className="w-full py-3 rounded-xl bg-[#E50914] hover:bg-red-600 text-white text-sm font-bold flex items-center justify-center gap-2 transition"
+                      className="w-full py-3 rounded-xl bg-accent hover:bg-accent-hover text-sm font-bold flex items-center justify-center gap-2 shadow-accent transition"
                     >
                       <span>前往方案付款確認</span>
                       <ArrowRight className="w-4 h-4" />
@@ -745,36 +837,36 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                 {merchantStep === 'payment' && (
                   <div className="space-y-5">
-                    <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+                    <div className="border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center justify-between">
                       <div>
-                        <h2 className="text-lg font-bold text-white">方案結帳與正式上架</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">完成付款後，店家資訊將立即刊登至學生市集</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">方案結帳與正式上架</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">完成付款後，店家資訊將立即刊登至學生市集</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => setMerchantStep('onboarding')}
-                        className="text-xs text-slate-400 hover:text-white"
+                        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       >
                         返回修改資料
                       </button>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">店家名稱</span>
-                        <span className="font-bold text-white">{storeName}</span>
+                        <span className="text-slate-500 dark:text-slate-400">店家名稱</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{storeName}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">地址</span>
-                        <span className="text-slate-200">{storeAddress}</span>
+                        <span className="text-slate-500 dark:text-slate-400">地址</span>
+                        <span className="text-slate-700 dark:text-slate-200">{storeAddress}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">電話</span>
-                        <span className="font-mono text-slate-200">{storePhone}</span>
+                        <span className="text-slate-500 dark:text-slate-400">電話</span>
+                        <span className="font-mono text-slate-700 dark:text-slate-200">{storePhone}</span>
                       </div>
-                      <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
-                        <span className="text-slate-300 font-semibold">{planDetails[storePlan].label}</span>
-                        <span className="text-base font-extrabold text-amber-400 font-mono">
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                        <span className="text-slate-700 dark:text-slate-300 font-semibold">{planDetails[storePlan].label}</span>
+                        <span className="text-base font-extrabold text-amber-600 dark:text-amber-400 font-mono">
                           {planDetails[storePlan].price}
                         </span>
                       </div>
@@ -802,9 +894,9 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
               setDevCodeError(null);
               setDevModalOpen(true);
             }}
-            className="absolute bottom-4 right-5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950/90 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-semibold text-slate-400 hover:text-white transition"
+            className="absolute bottom-4 right-5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-950/90 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/80 text-[11px] font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
           >
-            <Terminal className="w-3.5 h-3.5 text-[#E50914]" />
+            <Terminal className="w-3.5 h-3.5 text-accent" />
             <span>開發者測試按鈕</span>
           </button>
         </div>
@@ -812,23 +904,23 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
       {/* Developer Test Code Modal */}
       {devModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-[#E50914]" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-accent" />
                 <span>開發者快速驗證通道</span>
               </h3>
               <button
                 onClick={() => setDevModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               目前選擇模式：
-              <strong className="text-white ml-1">
+              <strong className="text-slate-900 dark:text-white ml-1">
                 {selectedRole === 'student' ? '學生模式' : selectedRole === 'teacher' ? '教師模式' : '商家模式'}
               </strong>
               。輸入開發者測試碼即可略過驗證直接進入體驗。
@@ -844,11 +936,11 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                   setDevCodeError(null);
                 }}
                 placeholder="請輸入開發者測試碼..."
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-[#E50914]"
+                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-mono focus:outline-none focus:border-accent"
               />
 
               {devCodeError && (
-                <div className="text-xs text-red-400 flex items-center gap-1.5">
+                <div className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>{devCodeError}</span>
                 </div>
@@ -858,13 +950,13 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                 <button
                   type="button"
                   onClick={() => setDevModalOpen(false)}
-                  className="px-4 py-2 text-xs text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold bg-[#E50914] hover:bg-red-600 text-white rounded-xl transition flex items-center gap-1.5"
+                  className="px-5 py-2 text-xs font-bold bg-accent hover:bg-accent-hover rounded-xl transition flex items-center gap-1.5 shadow-accent"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>驗證登入</span>

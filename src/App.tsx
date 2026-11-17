@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   NavigationTab,
+  CampusLifeSection,
   StudentProfile,
   Course,
   TodoItem,
@@ -14,8 +15,17 @@ import {
   SocialPost,
   RepairTicket,
   MerchantStore,
+  MerchantCouponInventory,
+  MerchantRedemptionRecord,
   UserRole,
+  AppSettings,
+  GoogleAccountBinding,
 } from './types';
+import {
+  SETTINGS_STORAGE_KEY,
+  loadAppSettings,
+  applySettingsToDocument,
+} from './utils/themeSettings';
 import {
   CHECKIN_CYCLE_REWARDS,
   DEFAULT_AVATAR_URL,
@@ -23,10 +33,11 @@ import {
   DEMO_TEACHER,
   DEMO_MERCHANT_PROFILE,
   DEMO_MERCHANTS,
+  DEMO_MERCHANT_COUPONS,
+  DEMO_REDEMPTION_LOGS,
   DEMO_COURSES,
   DEMO_TODOS,
   DEMO_COUPONS,
-  DEMO_MARKETPLACE,
   DEMO_POSTS,
   DEMO_BUS_ROUTES,
   DEMO_SHUTTLE_SCHEDULES,
@@ -46,12 +57,17 @@ import { PublicTransitHub } from './components/PublicTransitHub';
 import { NetflixHeroBillboard } from './components/NetflixHeroBillboard';
 import { AcademicHub } from './components/AcademicHub';
 import { AITutorView } from './components/AITutorView';
-import { RewardsMarketHub } from './components/RewardsMarketHub';
+import {
+  RewardsMarketHub,
+  LotteryCouponTemplate,
+  RewardsSubTab,
+} from './components/RewardsMarketHub';
 import { MerchantDashboard } from './components/MerchantDashboard';
 import { SocialHub } from './components/SocialHub';
 import { CampusLifeHub } from './components/CampusLifeHub';
 import { Campus3DMap } from './components/Campus3DMap';
 import { AuthModal } from './components/AuthModal';
+import { SettingsModal } from './components/SettingsModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import {
   Compass,
@@ -84,11 +100,15 @@ const EMPTY_PROFILE: StudentProfile = {
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState<NavigationTab>('overview');
+  const [rewardsSubTab, setRewardsSubTab] = useState<RewardsSubTab>('merchants');
+  const [campusLifeSection, setCampusLifeSection] = useState<CampusLifeSection>('cafeteria');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const [hasCheckedDailyPrompt, setHasCheckedDailyPrompt] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [settings, setSettings] = useState<AppSettings>(() => loadAppSettings());
 
   // Core Application State persisted locally
   const [profile, setProfile] = useState<StudentProfile>(() => {
@@ -97,8 +117,39 @@ export default function App() {
   });
 
   const [merchants, setMerchants] = useState<MerchantStore[]>(() => {
-    const saved = localStorage.getItem('cyut_merchants');
-    return saved ? JSON.parse(saved) : DEMO_MERCHANTS;
+    try {
+      const saved = localStorage.getItem('cyut_merchants');
+      if (!saved) return DEMO_MERCHANTS;
+      const parsed = JSON.parse(saved) as MerchantStore[];
+      if (!Array.isArray(parsed) || parsed.length === 0) return DEMO_MERCHANTS;
+      const existingIds = new Set(parsed.map((m) => m.id));
+      const missingDemo = DEMO_MERCHANTS.filter((dm) => !existingIds.has(dm.id));
+      return missingDemo.length > 0 ? [...parsed, ...missingDemo] : parsed;
+    } catch {
+      return DEMO_MERCHANTS;
+    }
+  });
+
+  const [merchantCoupons, setMerchantCoupons] = useState<MerchantCouponInventory[]>(() => {
+    try {
+      const saved = localStorage.getItem('cyut_merchant_coupons');
+      if (!saved) return DEMO_MERCHANT_COUPONS;
+      const parsed = JSON.parse(saved) as MerchantCouponInventory[];
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEMO_MERCHANT_COUPONS;
+    } catch {
+      return DEMO_MERCHANT_COUPONS;
+    }
+  });
+
+  const [redemptionLogs, setRedemptionLogs] = useState<MerchantRedemptionRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('cyut_redemption_logs');
+      if (!saved) return DEMO_REDEMPTION_LOGS;
+      const parsed = JSON.parse(saved) as MerchantRedemptionRecord[];
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEMO_REDEMPTION_LOGS;
+    } catch {
+      return DEMO_REDEMPTION_LOGS;
+    }
   });
 
   const [courses, setCourses] = useState<Course[]>(() => {
@@ -111,13 +162,19 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [userCoupons, setUserCoupons] = useState<Coupon[]>(() => {
-    const saved = localStorage.getItem('cyut_coupons');
-    return saved ? JSON.parse(saved) : [];
+  const [issuedCouponsPool, setIssuedCouponsPool] = useState<Coupon[]>(() => {
+    try {
+      const saved = localStorage.getItem('cyut_issued_coupons_pool');
+      if (!saved) return DEMO_COUPONS;
+      const parsed = JSON.parse(saved) as Coupon[];
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEMO_COUPONS;
+    } catch {
+      return DEMO_COUPONS;
+    }
   });
 
-  const [marketplaceCoupons, setMarketplaceCoupons] = useState<Coupon[]>(() => {
-    const saved = localStorage.getItem('cyut_market');
+  const [userCoupons, setUserCoupons] = useState<Coupon[]>(() => {
+    const saved = localStorage.getItem('cyut_coupons');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -131,8 +188,15 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [geminiApiKey, setGeminiApiKey] = useState<string>(() => {
-    return localStorage.getItem('cyut_gemini_api_key') || '';
+  const [googleAccount, setGoogleAccount] = useState<GoogleAccountBinding | null>(() => {
+    try {
+      const saved =
+        localStorage.getItem('cyut_google_account') ||
+        localStorage.getItem('cyut_google_ai_account');
+      return saved ? (JSON.parse(saved) as GoogleAccountBinding) : null;
+    } catch {
+      return null;
+    }
   });
 
   useEffect(() => {
@@ -142,6 +206,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('cyut_merchants', JSON.stringify(merchants));
   }, [merchants]);
+
+  useEffect(() => {
+    localStorage.setItem('cyut_merchant_coupons', JSON.stringify(merchantCoupons));
+  }, [merchantCoupons]);
+
+  useEffect(() => {
+    localStorage.setItem('cyut_redemption_logs', JSON.stringify(redemptionLogs));
+  }, [redemptionLogs]);
 
   useEffect(() => {
     localStorage.setItem('cyut_courses', JSON.stringify(courses));
@@ -156,8 +228,8 @@ export default function App() {
   }, [userCoupons]);
 
   useEffect(() => {
-    localStorage.setItem('cyut_market', JSON.stringify(marketplaceCoupons));
-  }, [marketplaceCoupons]);
+    localStorage.setItem('cyut_issued_coupons_pool', JSON.stringify(issuedCouponsPool));
+  }, [issuedCouponsPool]);
 
   useEffect(() => {
     localStorage.setItem('cyut_posts', JSON.stringify(posts));
@@ -166,6 +238,74 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('cyut_repairs', JSON.stringify(repairTickets));
   }, [repairTickets]);
+
+  useEffect(() => {
+    localStorage.removeItem('cyut_gemini_api_key');
+    localStorage.removeItem('cyut_google_ai_account');
+    if (googleAccount) {
+      localStorage.setItem('cyut_google_account', JSON.stringify(googleAccount));
+    } else {
+      localStorage.removeItem('cyut_google_account');
+    }
+  }, [googleAccount]);
+
+  // Apply and persist System Settings (Dark/Light mode, Accent Theme, Font Scale, Notifications)
+  useEffect(() => {
+    applySettingsToDocument(settings);
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    } catch {
+      // Ignore quota errors
+    }
+  }, [settings]);
+
+  // Class 15-minute reminder checker
+  useEffect(() => {
+    if (
+      !profile.isLoggedIn ||
+      profile.role === 'merchant' ||
+      !settings.notifications.masterEnabled ||
+      !settings.notifications.classReminder15m ||
+      courses.length === 0
+    ) {
+      return;
+    }
+
+    const checkUpcomingClass = () => {
+      const now = new Date();
+      const jsDay = now.getDay(); // 0 Sun, 1 Mon..5 Fri
+      if (jsDay < 1 || jsDay > 5) return;
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+
+      for (const course of courses) {
+        if (course.dayOfWeek !== jsDay) continue;
+        const startMatch = course.timeRange.match(/^(\d{1,2}):(\d{2})/);
+        if (!startMatch) continue;
+        const startMins = Number(startMatch[1]) * 60 + Number(startMatch[2]);
+        const diff = startMins - nowMins;
+        if (diff >= 1 && diff <= 15) {
+          const storageKey = `cyut_notified_${now.toISOString().split('T')[0]}_${course.id}`;
+          if (!sessionStorage.getItem(storageKey)) {
+            sessionStorage.setItem(storageKey, '1');
+            setToastMsg(
+              `⏰ 上課提醒（${diff} 分鐘後）：${course.name} · ${startMatch[0]} @ 教室 ${course.classroom}`
+            );
+          }
+          break;
+        }
+      }
+    };
+
+    checkUpcomingClass();
+    const timer = window.setInterval(checkUpcomingClass, 60000);
+    return () => window.clearInterval(timer);
+  }, [
+    profile.isLoggedIn,
+    profile.role,
+    courses,
+    settings.notifications.masterEnabled,
+    settings.notifications.classReminder15m,
+  ]);
 
   // Daily Check-in Popup Trigger:
   // Fires once per app session after Splash finishes if student has NOT claimed today's points.
@@ -187,7 +327,8 @@ export default function App() {
       profile.role === 'merchant' &&
       activeTab !== 'merchant-portal' &&
       activeTab !== 'rewards' &&
-      activeTab !== 'transit'
+      activeTab !== 'transit' &&
+      activeTab !== 'campus-life'
     ) {
       setActiveTab('merchant-portal');
     }
@@ -198,33 +339,54 @@ export default function App() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  // Developer Test Bypass ("tkr1026") for Student, Teacher, or Merchant
+  const handleOpenCouponLottery = () => {
+    setRewardsSubTab('redeem-shop');
+    setActiveTab('rewards');
+  };
+
+  // Developer Test Bypass ("root") for Student, Teacher, or Merchant
   const handleDevBypassLogin = (role: UserRole) => {
     setHasCheckedDailyPrompt(false);
+    const mergedPool = (() => {
+      const existingIds = new Set(issuedCouponsPool.map((c) => c.id));
+      const missingDemo = DEMO_COUPONS.filter((dc) => !existingIds.has(dc.id));
+      return missingDemo.length > 0 ? [...issuedCouponsPool, ...missingDemo] : issuedCouponsPool;
+    })();
+    setIssuedCouponsPool(mergedPool);
+
     if (role === 'student') {
       setProfile(DEMO_STUDENT);
       setCourses(DEMO_COURSES);
       setTodos(DEMO_TODOS);
-      setUserCoupons(DEMO_COUPONS);
-      setMarketplaceCoupons(DEMO_MARKETPLACE);
+      setUserCoupons(mergedPool);
       setPosts(DEMO_POSTS);
       setRepairTickets(DEMO_REPAIR_TICKETS);
       setActiveTab('overview');
-      showNotification('已透過開發者測試碼登入「學生模式」');
+      showNotification('已透過測試碼登入「學生模式」（初始點數 99,999 點）');
     } else if (role === 'teacher') {
       setProfile(DEMO_TEACHER);
       setCourses(DEMO_COURSES);
       setTodos(DEMO_TODOS);
+      setUserCoupons(mergedPool);
       setPosts(DEMO_POSTS);
       setActiveTab('ai-tutor');
-      showNotification('已透過開發者測試碼登入「教師模式」');
+      showNotification('已透過測試碼登入「教師模式」（初始點數 99,999 點）');
     } else {
       setProfile(DEMO_MERCHANT_PROFILE);
-      if (!merchants.some((m) => m.id === DEMO_MERCHANT_PROFILE.merchantStoreId)) {
-        setMerchants((prev) => [...DEMO_MERCHANTS, ...prev]);
+      setUserCoupons(mergedPool);
+      setMerchants((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const missingDemo = DEMO_MERCHANTS.filter((dm) => !existingIds.has(dm.id));
+        return missingDemo.length > 0 ? [...prev, ...missingDemo] : prev;
+      });
+      if (!merchantCoupons.some((c) => c.storeId === 'store-jifeng-brunch')) {
+        setMerchantCoupons((prev) => [...DEMO_MERCHANT_COUPONS, ...prev]);
+      }
+      if (!redemptionLogs.some((r) => r.storeId === 'store-jifeng-brunch')) {
+        setRedemptionLogs((prev) => [...DEMO_REDEMPTION_LOGS, ...prev]);
       }
       setActiveTab('merchant-portal');
-      showNotification('已透過開發者測試碼登入「商家模式」');
+      showNotification('已透過測試碼登入「朝陽後門・吉峰手作早午餐」商家後台');
     }
   };
 
@@ -238,15 +400,16 @@ export default function App() {
       department: dept,
       semester: '115 學年度第 1 學期',
       avatar: DEFAULT_AVATAR_URL,
-      points: 0,
+      points: 99999,
       streakDays: 0,
       lastCheckInDate: null,
-      lotteryTickets: 0,
+      lotteryTickets: 2,
       tronclassConnected: false,
       isLoggedIn: true,
     });
+    setUserCoupons(issuedCouponsPool);
     setActiveTab('overview');
-    showNotification(`歡迎登入，${name} 同學`);
+    showNotification(`歡迎登入，${name} 同學（已配發測試點數 99,999 點）`);
   };
 
   const handleTeacherLogin = (facultyNo: string, name: string, dept: string) => {
@@ -259,15 +422,49 @@ export default function App() {
       department: dept,
       semester: '115 學年度第 1 學期',
       avatar: DEFAULT_AVATAR_URL,
-      points: 0,
+      points: 99999,
       streakDays: 0,
       lastCheckInDate: null,
       lotteryTickets: 0,
       tronclassConnected: false,
       isLoggedIn: true,
     });
+    setUserCoupons(issuedCouponsPool);
     setActiveTab('ai-tutor');
     showNotification(`歡迎登入，${name} 老師`);
+  };
+
+  const handleTeacherGoogleLogin = (email: string, name: string, dept: string) => {
+    setHasCheckedDailyPrompt(false);
+    const localPrefix = email.split('@')[0] || 't940218';
+    const facultyId = /^[tT]/.test(localPrefix) ? localPrefix : `t_${localPrefix}`;
+    setProfile({
+      id: `prof-${Date.now()}`,
+      role: 'teacher',
+      studentNo: facultyId,
+      name,
+      department: dept,
+      semester: '115 學年度第 1 學期',
+      avatar: DEFAULT_AVATAR_URL,
+      points: 99999,
+      streakDays: 0,
+      lastCheckInDate: null,
+      lotteryTickets: 0,
+      tronclassConnected: false,
+      googleEmail: email,
+      isLoggedIn: true,
+    });
+    setGoogleAccount({
+      email,
+      name,
+      connectedAt: new Date().toLocaleDateString('zh-TW'),
+    });
+    setCourses(DEMO_COURSES);
+    setTodos(DEMO_TODOS);
+    setUserCoupons(issuedCouponsPool);
+    setPosts(DEMO_POSTS);
+    setActiveTab('ai-tutor');
+    showNotification(`已透過 Google 帳號登入教師模式（${email}）`);
   };
 
   const handleMerchantLoginExisting = (merchant: MerchantStore) => {
@@ -280,7 +477,7 @@ export default function App() {
       department: `特約商家 · ${merchant.category}`,
       semester: merchant.plan,
       avatar: DEFAULT_AVATAR_URL,
-      points: 0,
+      points: 99999,
       streakDays: 0,
       lastCheckInDate: null,
       lotteryTickets: 0,
@@ -288,6 +485,7 @@ export default function App() {
       isLoggedIn: true,
       merchantStoreId: merchant.id,
     });
+    setUserCoupons(issuedCouponsPool);
     setActiveTab('merchant-portal');
     showNotification(`歡迎回到商家後台：${merchant.name}`);
   };
@@ -308,7 +506,7 @@ export default function App() {
       department: `特約商家 · ${createdStore.category}`,
       semester: createdStore.plan,
       avatar: DEFAULT_AVATAR_URL,
-      points: 0,
+      points: 99999,
       streakDays: 0,
       lastCheckInDate: null,
       lotteryTickets: 0,
@@ -316,6 +514,7 @@ export default function App() {
       isLoggedIn: true,
       merchantStoreId: storeId,
     });
+    setUserCoupons(issuedCouponsPool);
     setActiveTab('merchant-portal');
     showNotification(`付款成功！${createdStore.name} 已正式上架至學生市集`);
   };
@@ -326,31 +525,166 @@ export default function App() {
     showNotification('門市資訊已同步更新至學生市集');
   };
 
+  const handleVerifyCouponCode = (
+    rawCode: string,
+    matchedCouponId?: string,
+    channel: 'QR 掃碼核銷' | '券號手動核銷' = '券號手動核銷'
+  ): { ok: boolean; message: string } => {
+    const code = rawCode.trim().toUpperCase();
+    const storeId = activeMerchantStore?.id || 'store-jifeng-brunch';
+
+    if (!code || code.length < 4) {
+      return { ok: false, message: '請輸入有效長度的優惠券序號（至少 4 碼）。' };
+    }
+
+    if (redemptionLogs.some((r) => r.couponCode.toUpperCase() === code)) {
+      return { ok: false, message: `券號 ${code} 今日已核銷過，請勿重複兌換。` };
+    }
+
+    const storeCouponsList = merchantCoupons.filter((c) => c.storeId === storeId);
+    const matchedInventory =
+      (matchedCouponId && storeCouponsList.find((c) => c.id === matchedCouponId)) ||
+      storeCouponsList.find((c) => code.startsWith(c.couponCodePrefix.toUpperCase()));
+
+    const matchedUserCoupon =
+      userCoupons.find((uc) => uc.code.toUpperCase() === code) ||
+      issuedCouponsPool.find((uc) => uc.code.toUpperCase() === code);
+
+    if (matchedInventory && !matchedInventory.isActive) {
+      return {
+        ok: false,
+        message: `優惠券「${matchedInventory.title}」目前已暫停發放，無法核銷。`,
+      };
+    }
+
+    if (!matchedInventory && !matchedUserCoupon && !/^(JF-|CYUT-|WAVE-|WUFENG-)/.test(code)) {
+      return {
+        ok: false,
+        message: `查無對應本校合作券號「${code}」，請確認是否為 JF- 或 CYUT- 開頭之有效券號。`,
+      };
+    }
+
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const sampleDepts = [
+      '資工系三年級 · s11007***',
+      '傳播系二年級 · s11109***',
+      '休閒系四年級 · s10912***',
+      '企管系三年級 · s11024***',
+      '設計系二年級 · s11118***',
+    ];
+    const studentDeptMasked = sampleDepts[redemptionLogs.length % sampleDepts.length];
+    const resolvedTitle =
+      matchedInventory?.title || matchedUserCoupon?.title || '朝陽校園特約優惠券';
+
+    const newLog: MerchantRedemptionRecord = {
+      id: `rdm-${Date.now()}`,
+      storeId,
+      couponTitle: resolvedTitle,
+      couponCode: code,
+      studentDeptMasked,
+      redeemedAt: `今日 ${hh}:${mm}`,
+      channel,
+    };
+
+    setRedemptionLogs((prev) => [newLog, ...prev]);
+
+    if (matchedInventory) {
+      setMerchantCoupons((prev) =>
+        prev.map((c) =>
+          c.id === matchedInventory.id
+            ? {
+                ...c,
+                redeemedToday: c.redeemedToday + 1,
+                claimedCount: Math.max(c.claimedCount, c.redeemedToday + 1),
+              }
+            : c
+        )
+      );
+    }
+
+    if (matchedUserCoupon) {
+      setUserCoupons((prev) =>
+        prev.map((uc) => (uc.code.toUpperCase() === code ? { ...uc, isUsed: true } : uc))
+      );
+      setIssuedCouponsPool((prev) =>
+        prev.map((uc) => (uc.code.toUpperCase() === code ? { ...uc, isUsed: true } : uc))
+      );
+    }
+
+    showNotification(`核銷成功：${resolvedTitle}（${code}）`);
+    return {
+      ok: true,
+      message: `核銷完成！「${resolvedTitle}」（${code}）已立即入帳至今日紀錄。`,
+    };
+  };
+
+  const handleToggleMerchantCoupon = (couponId: string) => {
+    setMerchantCoupons((prev) =>
+      prev.map((c) => (c.id === couponId ? { ...c, isActive: !c.isActive } : c))
+    );
+    showNotification('已更新優惠券上架狀態');
+  };
+
+  const handleAddMerchantCoupon = (
+    newCoupon: Omit<MerchantCouponInventory, 'id' | 'claimedCount' | 'redeemedToday'>
+  ) => {
+    const created: MerchantCouponInventory = {
+      ...newCoupon,
+      id: `mc-${Date.now()}`,
+      claimedCount: 0,
+      redeemedToday: 0,
+    };
+    setMerchantCoupons((prev) => [created, ...prev]);
+    showNotification(`已發行新優惠券：${created.title}`);
+  };
+
   const handleLogout = () => {
     setProfile(EMPTY_PROFILE);
     setCourses([]);
     setTodos([]);
     setUserCoupons([]);
-    setMarketplaceCoupons([]);
     setPosts([]);
     setRepairTickets([]);
+    setGoogleAccount(null);
     setHasCheckedDailyPrompt(false);
     setIsCheckInModalOpen(false);
     localStorage.removeItem('cyut_profile');
     localStorage.removeItem('cyut_courses');
     localStorage.removeItem('cyut_todos');
     localStorage.removeItem('cyut_coupons');
-    localStorage.removeItem('cyut_market');
     localStorage.removeItem('cyut_posts');
     localStorage.removeItem('cyut_repairs');
+    localStorage.removeItem('cyut_google_account');
+    localStorage.removeItem('cyut_gemini_api_key');
     setActiveTab('overview');
     showNotification('已登出帳號，請選擇身分模式重新登入');
   };
 
-  const handleSaveApiKey = (key: string) => {
-    setGeminiApiKey(key);
-    localStorage.setItem('cyut_gemini_api_key', key);
-    showNotification('已安全儲存 Gemini BYOK API Key');
+  const handleGoogleSignIn = (account: GoogleAccountBinding) => {
+    setGoogleAccount(account);
+    setProfile((prev) => ({ ...prev, googleEmail: account.email }));
+    showNotification(`已成功授權綁定 Google 帳號：${account.email}`);
+  };
+
+  const handleGoogleSignOut = () => {
+    setGoogleAccount(null);
+    setProfile((prev) => ({ ...prev, googleEmail: undefined }));
+    showNotification('已解除 Google 帳號授權綁定');
+  };
+
+  const handleUpdatePassword = (newPassword: string) => {
+    localStorage.setItem('cyut_account_password_hash', btoa(unescape(encodeURIComponent(newPassword))));
+    showNotification('帳號登入密碼已更新完成');
+  };
+
+  const handleTestClassReminder = () => {
+    const sample = courses[0] || DEMO_COURSES[0];
+    const startTime = sample.timeRange.split('-')[0]?.trim() || '09:10';
+    showNotification(
+      `⏰ 課前 15 分鐘推播：${sample.name} · ${startTime} @ 教室 ${sample.classroom}`
+    );
   };
 
   // Homework / task completion awards uniformly 5 points
@@ -399,96 +733,45 @@ export default function App() {
     showNotification(`簽到成功！獲得第 ${cycleIndex + 1} 天獎勵 +${rewardPoints} 點`);
   };
 
-  // Lottery draw threshold: 2000 points
-  const handleDrawMysteryBox = (): Coupon => {
-    const pool = [
-      {
-        title: '晨曦手搖飲 全品項折 $20',
-        storeName: '晨曦手作黑糖波霸專賣',
-        category: 'beverage' as const,
-        originalValue: 65,
-        discountDescription: '滿 50 元現折 20 元',
-      },
-      {
-        title: '晨光精品拿鐵 買一送一券',
-        storeName: '波浪廣場 · 晨光精品咖啡',
-        category: 'coffee' as const,
-        originalValue: 110,
-        discountDescription: '大杯拿鐵/美式享買一送一',
-      },
-      {
-        title: '綠漾健康舒肥餐盒折 $30',
-        storeName: '綠漾健康舒肥輕食餐盒',
-        category: 'bento' as const,
-        originalValue: 130,
-        discountDescription: '任選餐盒立折 30 元',
-      },
-      {
-        title: '霧峰老街肉圓 雙人套餐折 $25',
-        storeName: '霧峰老街傳承肉圓',
-        category: 'snack' as const,
-        originalValue: 100,
-        discountDescription: '消費滿百現折 25 元',
-      },
-    ];
+  // Direct Coupon Exchange Mall: deduct exact costPoints and issue to wallet + merchant verification pool
+  const handleRedeemCoupon = (template: LotteryCouponTemplate, costPoints: number): Coupon | null => {
+    if (profile.points < costPoints) {
+      showNotification(`點數不足，需要 ${costPoints.toLocaleString()} 點才能兌換`);
+      return null;
+    }
 
-    const pick = pool[Math.floor(Math.random() * pool.length)];
     const newCoupon: Coupon = {
-      ...pick,
-      id: `drawn-${Date.now()}`,
-      code: `CYUT-BOX-${Math.floor(1000 + Math.random() * 9000)}`,
+      ...template,
+      id: `redeemed-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      code: `CYUT-MALL-${Math.floor(1000 + Math.random() * 9000)}`,
       expiryDate: '2026-12-31',
       isUsed: false,
       isListedForSale: false,
     };
 
-    setProfile((p) => ({ ...p, points: Math.max(0, p.points - 2000) }));
+    setProfile((p) => ({ ...p, points: Math.max(0, p.points - costPoints) }));
     setUserCoupons((prev) => [newCoupon, ...prev]);
+    setIssuedCouponsPool((prev) => [newCoupon, ...prev]);
+    showNotification(`兌換成功：${newCoupon.title}（-${costPoints.toLocaleString()} 點）`);
     return newCoupon;
   };
 
-  const handleListCouponForSale = (couponId: string, salePrice: number): boolean => {
-    const coupon = userCoupons.find((c) => c.id === couponId);
-    if (!coupon) return false;
-
-    if (salePrice > Math.floor(coupon.originalValue * 0.95)) {
-      return false;
-    }
-
-    setUserCoupons((prev) =>
-      prev.map((c) => (c.id === couponId ? { ...c, isListedForSale: true, salePrice } : c))
-    );
-
-    const marketItem: Coupon = {
-      ...coupon,
-      isListedForSale: true,
-      salePrice,
-      sellerId: profile.id,
-      sellerName: profile.name || '朝陽同學',
-    };
-    setMarketplaceCoupons((prev) => [marketItem, ...prev]);
-    showNotification(`優惠券已上架至二級市集 (NT$ ${salePrice})`);
-    return true;
-  };
-
-  const handleBuyMarketCoupon = (coupon: Coupon): boolean => {
-    setMarketplaceCoupons((prev) => prev.filter((m) => m.id !== coupon.id));
-    const boughtCoupon: Coupon = {
-      ...coupon,
-      isListedForSale: false,
-      sellerId: undefined,
-      sellerName: undefined,
-    };
-    setUserCoupons((prev) => [boughtCoupon, ...prev]);
-    showNotification(`已收藏「${coupon.title}」至我的優惠券`);
-    return true;
+  const handleGrantCoupon = (coupon: Coupon) => {
+    setUserCoupons((prev) => [coupon, ...prev]);
+    setIssuedCouponsPool((prev) => [coupon, ...prev]);
+    showNotification(`領取成功！已將「${coupon.title}」存入我的票券`);
   };
 
   const handleAddPost = (
     newPost: Omit<SocialPost, 'id' | 'timestamp' | 'likes' | 'commentsCount' | 'comments'>
   ) => {
+    const isTeacher = profile.role === 'teacher';
     const postItem: SocialPost = {
       ...newPost,
+      authorId: isTeacher ? profile.id : newPost.authorId,
+      authorName: isTeacher ? profile.name : newPost.authorName,
+      authorDept: isTeacher ? profile.department : newPost.authorDept,
+      isAnonymous: isTeacher ? false : newPost.isAnonymous,
       id: `post-${Date.now()}`,
       timestamp: '剛剛',
       likes: 1,
@@ -497,7 +780,7 @@ export default function App() {
       comments: [],
     };
     setPosts((prev) => [postItem, ...prev]);
-    showNotification('貼文已成功發布');
+    showNotification(isTeacher ? '已以教師實名成功發布貼文' : '貼文已成功發布');
   };
 
   const handleLikePost = (postId: string) => {
@@ -581,6 +864,7 @@ export default function App() {
         existingMerchants={merchants}
         onStudentLogin={handleStudentLogin}
         onTeacherLogin={handleTeacherLogin}
+        onTeacherGoogleLogin={handleTeacherGoogleLogin}
         onMerchantLoginExisting={handleMerchantLoginExisting}
         onMerchantRegisterAndPay={handleMerchantRegisterAndPay}
         onDevBypassLogin={handleDevBypassLogin}
@@ -589,7 +873,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex flex-col selection:bg-[#E50914] selection:text-white pb-20 lg:pb-12">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F17] text-slate-900 dark:text-slate-100 flex flex-col pb-20 lg:pb-12 transition-colors duration-200">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -605,7 +889,14 @@ export default function App() {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         activeTab={activeTab}
+        activeLifeSection={campusLifeSection}
         onSelectTab={setActiveTab}
+        onSelectCampusSystem={(sec) => {
+          setCampusLifeSection(sec);
+          setActiveTab('campus-life');
+        }}
+        onOpenCouponLottery={handleOpenCouponLottery}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         profile={profile}
       />
 
@@ -622,7 +913,13 @@ export default function App() {
             >
               <MerchantDashboard
                 store={activeMerchantStore}
+                coupons={merchantCoupons}
+                issuedCoupons={issuedCouponsPool}
+                redemptionLogs={redemptionLogs}
                 onUpdateStore={handleUpdateMerchantStore}
+                onVerifyCouponCode={handleVerifyCouponCode}
+                onToggleCouponActive={handleToggleMerchantCoupon}
+                onAddCoupon={handleAddMerchantCoupon}
                 onPreviewMarketplace={() => setActiveTab('rewards')}
               />
             </motion.div>
@@ -643,18 +940,19 @@ export default function App() {
                 todos={todos}
                 onNavigate={setActiveTab}
                 onOpenCheckIn={() => setIsCheckInModalOpen(true)}
+                onOpenCouponLottery={handleOpenCouponLottery}
               />
 
               {/* Row 1: Weekly Classes */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#E50914]" />
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-accent" />
                     <span>本週課表 · 隨點隨看</span>
                   </h3>
                   <button
                     onClick={() => setActiveTab('academic')}
-                    className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 transition"
+                    className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"
                   >
                     <span>檢視完整課表</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -663,7 +961,7 @@ export default function App() {
 
                 <div className="flex gap-4 overflow-x-auto netflix-scrollbar pb-3">
                   {courses.length === 0 ? (
-                    <div className="p-8 text-center w-full rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 text-xs">
+                    <div className="p-8 text-center w-full rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 text-xs">
                       尚無課表資料，可前往「課表與任務」下方連結 Tronclass Token 同步課表。
                     </div>
                   ) : (
@@ -671,7 +969,7 @@ export default function App() {
                       <div
                         key={c.id}
                         onClick={() => setActiveTab('academic')}
-                        className="w-72 md:w-80 shrink-0 p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-[#1A2234] border border-slate-800 hover:border-slate-700 cursor-pointer transition-all hover:scale-[1.02] shadow-lg group"
+                        className="w-72 md:w-80 shrink-0 p-5 rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#1A2234] border border-slate-200 dark:border-slate-800 hover:border-accent cursor-pointer transition-all hover:scale-[1.02] shadow-sm dark:shadow-lg group"
                       >
                         <div className="flex items-center justify-between mb-2">
                           <span
@@ -680,17 +978,17 @@ export default function App() {
                           >
                             週{['一', '二', '三', '四', '五'][c.dayOfWeek - 1]}
                           </span>
-                          <span className="text-xs font-mono text-amber-400 font-bold">
+                          <span className="text-xs font-mono text-amber-600 dark:text-amber-400 font-bold">
                             {c.classroom}
                           </span>
                         </div>
-                        <h4 className="text-base font-bold text-white group-hover:text-[#E50914] transition truncate">
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-accent transition truncate">
                           {c.name}
                         </h4>
-                        <div className="text-xs text-slate-400 mt-1">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           {c.professor} · {c.building}
                         </div>
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                           <span className="font-mono tabular-nums">{c.timeRange}</span>
                           <span className="text-slate-500">
                             第 {c.startPeriod}-{c.endPeriod} 節
@@ -705,13 +1003,13 @@ export default function App() {
               {/* Row 2: 3D Campus Buildings */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Compass className="w-4 h-4 text-[#E50914]" />
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-accent" />
                     <span>3D 校園主要建築</span>
                   </h3>
                   <button
                     onClick={() => setActiveTab('campus-3d')}
-                    className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 transition"
+                    className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"
                   >
                     <span>進入 3D 地圖</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -723,7 +1021,7 @@ export default function App() {
                     <div
                       key={bldg.id}
                       onClick={() => setActiveTab('campus-3d')}
-                      className="w-64 md:w-72 shrink-0 p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-red-900/60 cursor-pointer transition-all hover:scale-[1.02] shadow-lg"
+                      className="w-64 md:w-72 shrink-0 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-accent cursor-pointer transition-all hover:scale-[1.02] shadow-sm dark:shadow-lg"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span
@@ -732,12 +1030,14 @@ export default function App() {
                         >
                           {bldg.code} 大樓
                         </span>
-                        <span className="text-xs text-slate-400 font-mono">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                           {bldg.floors} 層
                         </span>
                       </div>
-                      <h4 className="text-sm font-bold text-white mt-1 truncate">{bldg.name}</h4>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-1 truncate">
+                        {bldg.name}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                         {bldg.description}
                       </p>
                     </div>
@@ -749,13 +1049,13 @@ export default function App() {
               {profile.role !== 'merchant' && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                      <Store className="w-4 h-4 text-[#E50914]" />
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Store className="w-4 h-4 text-accent" />
                       <span>朝陽特約合作商家</span>
                     </h3>
                     <button
                       onClick={() => setActiveTab('rewards')}
-                      className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 transition"
+                      className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"
                     >
                       <span>前往學生市集</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -770,11 +1070,11 @@ export default function App() {
                         <div
                           key={m.id}
                           onClick={() => setActiveTab('rewards')}
-                          className="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition shadow-lg"
+                          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-accent cursor-pointer transition shadow-sm dark:shadow-lg"
                         >
-                          <div className="text-xs text-slate-400">{m.category}</div>
-                          <h4 className="text-sm font-bold text-white mt-0.5">{m.name}</h4>
-                          <p className="text-xs text-slate-400 mt-1 truncate">{m.address}</p>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{m.category}</div>
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{m.name}</h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">{m.address}</p>
                         </div>
                       ))}
                   </div>
@@ -816,8 +1116,11 @@ export default function App() {
             >
               <AITutorView
                 role={profile.role}
-                apiKey={geminiApiKey}
-                onSaveApiKey={handleSaveApiKey}
+                profileName={profile.name}
+                studentNo={profile.studentNo}
+                googleAccount={googleAccount}
+                onGoogleSignIn={handleGoogleSignIn}
+                onGoogleSignOut={handleGoogleSignOut}
               />
             </motion.div>
           )}
@@ -833,14 +1136,13 @@ export default function App() {
               <RewardsMarketHub
                 profile={profile}
                 merchants={merchants}
+                cafeteriaList={DEMO_CAFETERIA}
                 userCoupons={userCoupons}
-                marketplaceCoupons={marketplaceCoupons}
-                repairTickets={repairTickets}
+                initialSubTab={rewardsSubTab}
+                onSubTabChange={setRewardsSubTab}
                 onOpenCheckInModal={() => setIsCheckInModalOpen(true)}
-                onDrawMysteryBox={handleDrawMysteryBox}
-                onListCouponForSale={handleListCouponForSale}
-                onBuyMarketCoupon={handleBuyMarketCoupon}
-                onNavigateToRepair={() => setActiveTab('campus-life')}
+                onRedeemCoupon={handleRedeemCoupon}
+                onGrantCoupon={handleGrantCoupon}
               />
             </motion.div>
           )}
@@ -873,7 +1175,12 @@ export default function App() {
             >
               <CampusLifeHub
                 profile={profile}
-                busRoutes={DEMO_BUS_ROUTES}
+                activeSection={campusLifeSection}
+                onSelectSection={setCampusLifeSection}
+                onBackHome={() =>
+                  setActiveTab(profile.role === 'merchant' ? 'merchant-portal' : 'overview')
+                }
+                onOpenTransit={() => setActiveTab('transit')}
                 cafeteriaList={DEMO_CAFETERIA}
                 lockers={DEMO_LOCKERS}
                 leaveRecords={DEMO_LEAVE_RECORDS}
@@ -895,7 +1202,7 @@ export default function App() {
               className="space-y-3"
             >
               <Campus3DMap />
-              <p className="text-xs text-slate-400 text-center px-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center px-2">
                 高角度俯視全校 10 棟主要建築配置，點選任一大樓即可展開 3D 樓層透視剖面，自由旋轉縮放檢視各樓層教室與系所空間。
               </p>
             </motion.div>
@@ -925,7 +1232,7 @@ export default function App() {
 
       {/* Mobile Fixed Bottom Navigation Bar */}
       <nav
-        className={`fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-slate-900/95 backdrop-blur-md border-t border-slate-800 grid items-center h-16 px-1 ${
+        className={`fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 grid items-center h-16 px-1 ${
           profile.role === 'merchant' ? 'grid-cols-2' : 'grid-cols-6'
         }`}
       >
@@ -934,7 +1241,9 @@ export default function App() {
             <button
               onClick={() => setActiveTab('merchant-portal')}
               className={`flex flex-col items-center justify-center py-1 transition ${
-                activeTab === 'merchant-portal' ? 'text-[#E50914]' : 'text-slate-400'
+                activeTab === 'merchant-portal'
+                  ? 'text-accent'
+                  : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Store className="w-4 h-4" />
@@ -943,7 +1252,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('rewards')}
               className={`flex flex-col items-center justify-center py-1 transition ${
-                activeTab === 'rewards' ? 'text-[#E50914]' : 'text-slate-400'
+                activeTab === 'rewards' ? 'text-accent' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Gift className="w-4 h-4" />
@@ -955,7 +1264,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('overview')}
               className={`flex flex-col items-center justify-center py-1 transition ${
-                activeTab === 'overview' ? 'text-[#E50914]' : 'text-slate-400'
+                activeTab === 'overview' ? 'text-accent' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Home className="w-4 h-4" />
@@ -964,7 +1273,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('academic')}
               className={`flex flex-col items-center justify-center py-1 transition ${
-                activeTab === 'academic' ? 'text-[#E50914]' : 'text-slate-400'
+                activeTab === 'academic' ? 'text-accent' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Calendar className="w-4 h-4" />
@@ -973,7 +1282,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('ai-tutor')}
               className={`flex flex-col items-center justify-center py-1 transition ${
-                activeTab === 'ai-tutor' ? 'text-[#E50914]' : 'text-slate-400'
+                activeTab === 'ai-tutor' ? 'text-accent' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Sparkles className="w-4 h-4" />
@@ -984,7 +1293,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('rewards')}
               className={`flex flex-col items-center justify-center py-1 transition ${
-                activeTab === 'rewards' ? 'text-[#E50914]' : 'text-slate-400'
+                activeTab === 'rewards' ? 'text-accent' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Gift className="w-4 h-4" />
@@ -993,7 +1302,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('campus-3d')}
               className={`flex flex-col items-center justify-center py-1 transition ${
-                activeTab === 'campus-3d' ? 'text-[#E50914]' : 'text-slate-400'
+                activeTab === 'campus-3d' ? 'text-accent' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Compass className="w-4 h-4" />
@@ -1002,7 +1311,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('social')}
               className={`flex flex-col items-center justify-center py-1 transition ${
-                activeTab === 'social' ? 'text-[#E50914]' : 'text-slate-400'
+                activeTab === 'social' ? 'text-accent' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -1028,12 +1337,31 @@ export default function App() {
         onLogout={handleLogout}
       />
 
+      {/* System Settings Center Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        profile={profile}
+        settings={settings}
+        googleAccount={googleAccount}
+        onUpdateSettings={setSettings}
+        onLogout={handleLogout}
+        onUpdatePassword={handleUpdatePassword}
+        onUpdateTronclassToken={(token) => {
+          setProfile((p) => ({ ...p, tronclassConnected: true, tronclassToken: token }));
+          showNotification('Tronclass Token 連線成功');
+        }}
+        onGoogleSignIn={handleGoogleSignIn}
+        onGoogleSignOut={handleGoogleSignOut}
+        onTestClassReminder={handleTestClassReminder}
+      />
+
       <OfflineIndicator />
 
       {/* Global Toast Notification */}
       {toastMsg && (
-        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 rounded-xl bg-slate-900/95 border border-red-900/80 px-4 py-3 text-xs font-semibold text-white shadow-2xl backdrop-blur-md">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-accent-soft px-4 py-3 text-xs font-semibold text-slate-900 dark:text-white shadow-2xl backdrop-blur-md">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}

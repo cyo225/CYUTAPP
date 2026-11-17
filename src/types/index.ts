@@ -11,13 +11,45 @@ export type NavigationTab =
   | 'transit'
   | 'merchant-portal';
 
+export type CampusLifeSection =
+  | 'cafeteria'
+  | 'repair'
+  | 'locker'
+  | 'calendar'
+  | 'emergency'
+  | 'library'
+  | 'leave';
+
 export type MerchantPlan = 'monthly' | 'quarterly' | 'yearly';
+
+export interface MerchantCouponInventory {
+  id: string;
+  storeId: string;
+  title: string;
+  discountSummary: string;
+  couponCodePrefix: string;
+  totalQuota: number;
+  claimedCount: number;
+  redeemedToday: number;
+  isActive: boolean;
+}
+
+export interface MerchantRedemptionRecord {
+  id: string;
+  storeId: string;
+  couponTitle: string;
+  couponCode: string;
+  studentDeptMasked: string;
+  redeemedAt: string;
+  channel: 'QR 掃碼核銷' | '券號手動核銷';
+}
 
 export interface MerchantStore {
   id: string;
   ownerEmail: string;
   name: string;
   category: string;
+  icon?: string;
   address: string;
   phone: string;
   plan: MerchantPlan;
@@ -26,8 +58,25 @@ export interface MerchantStore {
   menuImage?: string;
   website?: string;
   businessHours?: string;
+  priceRange?: string;
+  walkingTimeLabel?: string;
+  signatureDishes?: string[];
+  cafeteriaId?: string;
   latestPromo?: string;
+  dailyLuckyCoupon?: {
+    title: string;
+    discountDescription: string;
+    originalValue: number;
+    couponCategory: 'beverage' | 'snack' | 'bento' | 'coffee' | 'dessert';
+  };
   updatedAt: string;
+}
+
+
+export interface GoogleAccountBinding {
+  email: string;
+  name: string;
+  connectedAt: string;
 }
 
 export interface StudentProfile {
@@ -44,7 +93,7 @@ export interface StudentProfile {
   lotteryTickets: number;
   tronclassConnected: boolean;
   tronclassToken?: string;
-  geminiApiKey?: string;
+  googleEmail?: string;
   isLoggedIn: boolean;
   merchantStoreId?: string;
 }
@@ -98,7 +147,7 @@ export interface Coupon {
   sellerName?: string;
 }
 
-export type SocialCategory = 'feed' | 'department' | 'mixer' | 'club' | 'exchange';
+export type SocialCategory = 'feed' | 'department' | 'mixer' | 'online_meetup' | 'club' | 'exchange';
 
 export interface SocialAttachment {
   id: string;
@@ -138,17 +187,23 @@ export interface SocialPost {
 export interface BusRouteInfo {
   id: string;
   route: string;
+  operator: string;
   destination: string;
   direction: 'to_city' | 'to_campus';
   directionLabel: string;
   stopName: string;
   areaTag: '校門口' | '宿舍區' | '校內站' | '吉峰路口';
-  nextBusMinutes: number; // -1 if unscheduled (未發車)
-  status: 'arriving' | 'approaching' | 'scheduled' | 'unscheduled' | 'delayed';
+  currentStop: string;
+  nextBusMinutes: number; // -1 if unscheduled or ended
+  secondBusMinutes?: number;
+  status: 'arriving' | 'approaching' | 'scheduled' | 'unscheduled' | 'ended' | 'delayed';
   plateNumber?: string;
   crowding: 'low' | 'medium' | 'high';
+  isAccessible?: boolean;
   nextDepartureTime?: string;
   operatingHours: string;
+  firstDeparture?: string;
+  lastDeparture?: string;
 }
 
 export interface ShuttleSchedule {
@@ -244,3 +299,25 @@ export interface LeaveRecord {
   status: 'pending' | 'approved' | 'rejected';
   warningNote?: string;
 }
+
+export type ThemeMode = 'dark' | 'light';
+
+export type ThemeAccent = 'ocean' | 'lavender' | 'forest' | 'gold' | 'crimson';
+
+export type FontSizeScale = 'standard' | 'medium' | 'large';
+
+export interface NotificationSettings {
+  masterEnabled: boolean;
+  academicAlerts: boolean;
+  merchantPromoAlerts: boolean;
+  classReminder15m: boolean;
+  socialAlerts: boolean;
+}
+
+export interface AppSettings {
+  colorMode: ThemeMode;
+  accentTheme: ThemeAccent;
+  fontSize: FontSizeScale;
+  notifications: NotificationSettings;
+}
+

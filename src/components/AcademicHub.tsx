@@ -38,7 +38,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
   // View toggle: 'matrix' (五天一起顯示) vs 'daily' (一天一天詳細顯示)
   const [timetableView, setTimetableView] = useState<'matrix' | 'daily'>('matrix');
   const [selectedDay, setSelectedDay] = useState<number>(1);
-  const [todoFilter, setTodoFilter] = useState<TodoType | 'all'>('all');
+  const [todoFilter, setTodoFilter] = useState<'all' | 'announcement' | 'material' | 'homework' | 'quiz'>('all');
   const [isEditingToken, setIsEditingToken] = useState(false);
   const [inputToken, setInputToken] = useState(tronclassToken || '');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -64,7 +64,11 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
 
   const filteredTodos = todos.filter((t) => {
     if (todoFilter === 'all') return true;
-    return t.type === todoFilter;
+    if (todoFilter === 'announcement') return t.type === 'announcement';
+    if (todoFilter === 'material') return t.type === 'material';
+    if (todoFilter === 'homework') return t.type === 'assignment' || t.type === 'past_exam';
+    if (todoFilter === 'quiz') return t.type === 'quiz';
+    return true;
   });
 
   const handleSyncTronclass = () => {
@@ -103,19 +107,19 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
         <div className="lg:col-span-7 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#E50914]" />
-              <h3 className="text-lg font-bold text-white">每週課表</h3>
+              <Calendar className="w-5 h-5 text-accent" />
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">每週課表</h3>
             </div>
 
             {/* View Switcher: 5-Day Matrix vs Day-by-Day Detailed */}
-            <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
               <button
                 type="button"
                 onClick={() => setTimetableView('matrix')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition whitespace-nowrap ${
                   timetableView === 'matrix'
-                    ? 'bg-[#E50914] text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-accent shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <Columns className="w-3.5 h-3.5" />
@@ -126,8 +130,8 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                 onClick={() => setTimetableView('daily')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition whitespace-nowrap ${
                   timetableView === 'daily'
-                    ? 'bg-[#E50914] text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-accent shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <List className="w-3.5 h-3.5" />
@@ -138,16 +142,16 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
 
           {timetableView === 'matrix' ? (
             /* 5-Day Matrix View: Strict Zero Horizontal Scroll on 375px-430px Phones */
-            <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/75 overflow-hidden shadow-lg">
+            <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/75 overflow-hidden shadow-sm dark:shadow-lg">
               {/* Header Row */}
-              <div className="grid grid-cols-[44px_repeat(5,minmax(0,1fr))] sm:grid-cols-[84px_repeat(5,minmax(0,1fr))] border-b border-slate-800 bg-slate-950/90">
-                <div className="py-2 px-1 sm:px-2.5 text-[10px] sm:text-[11px] font-bold text-slate-400 text-center flex items-center justify-center">
+              <div className="grid grid-cols-[44px_repeat(5,minmax(0,1fr))] sm:grid-cols-[84px_repeat(5,minmax(0,1fr))] border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/90">
+                <div className="py-2 px-1 sm:px-2.5 text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 text-center flex items-center justify-center">
                   節次
                 </div>
                 {days.map((d) => (
                   <div
                     key={d.num}
-                    className="py-2 px-0.5 sm:px-2 text-[11px] sm:text-xs font-bold text-slate-200 text-center border-l border-slate-800/80 flex items-center justify-center"
+                    className="py-2 px-0.5 sm:px-2 text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 text-center border-l border-slate-200 dark:border-slate-800/80 flex items-center justify-center"
                   >
                     <span className="sm:hidden">週{d.short}</span>
                     <span className="hidden sm:inline">{d.desktopShort}</span>
@@ -160,11 +164,11 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                 {periods.map((p) => (
                   <div
                     key={p.period}
-                    className="grid grid-cols-[44px_repeat(5,minmax(0,1fr))] sm:grid-cols-[84px_repeat(5,minmax(0,1fr))] border-b border-slate-800/70 last:border-b-0"
+                    className="grid grid-cols-[44px_repeat(5,minmax(0,1fr))] sm:grid-cols-[84px_repeat(5,minmax(0,1fr))] border-b border-slate-200 dark:border-slate-800/70 last:border-b-0"
                   >
                     {/* Period & Exact Time Column */}
-                    <div className="py-1.5 px-0.5 sm:px-2 bg-slate-950/50 flex flex-col items-center sm:items-start justify-center text-center sm:text-left">
-                      <div className="text-[10px] sm:text-xs font-bold text-white leading-tight">
+                    <div className="py-1.5 px-0.5 sm:px-2 bg-slate-50 dark:bg-slate-950/50 flex flex-col items-center sm:items-start justify-center text-center sm:text-left">
+                      <div className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white leading-tight">
                         <span className="sm:hidden">{p.shortLabel}</span>
                         <span className="hidden sm:inline">{p.label}</span>
                       </div>
@@ -190,29 +194,29 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                       return (
                         <div
                           key={d.num}
-                          className="min-w-0 p-0.5 sm:p-1.5 border-l border-slate-800/80 flex items-stretch"
+                          className="min-w-0 p-0.5 sm:p-1.5 border-l border-slate-200 dark:border-slate-800/80 flex items-stretch"
                         >
                           {course ? (
                             <button
                               type="button"
                               onClick={() => setSelectedCourse(course)}
-                              className="w-full text-left p-1 sm:p-2 rounded-lg sm:rounded-xl bg-slate-950/90 border border-slate-800 hover:border-slate-600 transition flex flex-col justify-between overflow-hidden min-h-[50px]"
+                              className="w-full text-left p-1 sm:p-2 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 hover:border-accent transition flex flex-col justify-between overflow-hidden min-h-[50px]"
                               style={{ borderTopColor: course.color, borderTopWidth: '3px' }}
                             >
-                              <div className="text-[10px] sm:text-[11px] font-bold text-white leading-[1.2] break-words line-clamp-3">
+                              <div className="text-[10px] sm:text-[11px] font-bold text-slate-900 dark:text-white leading-[1.2] break-words line-clamp-3">
                                 {course.name}
                               </div>
                               <div className="mt-1 space-y-0.5">
-                                <div className="text-[9px] sm:text-[10px] font-mono text-amber-400 font-semibold leading-tight truncate">
+                                <div className="text-[9px] sm:text-[10px] font-mono text-amber-600 dark:text-amber-400 font-semibold leading-tight truncate">
                                   {course.classroom}
                                 </div>
-                                <div className="hidden sm:block text-[10px] text-slate-400 truncate">
+                                <div className="hidden sm:block text-[10px] text-slate-500 dark:text-slate-400 truncate">
                                   {course.professor}
                                 </div>
                               </div>
                             </button>
                           ) : (
-                            <div className="w-full min-h-[48px] flex items-center justify-center text-[10px] text-slate-700">
+                            <div className="w-full min-h-[48px] flex items-center justify-center text-[10px] text-slate-300 dark:text-slate-700">
                               —
                             </div>
                           )}
@@ -226,15 +230,15 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
           ) : (
             /* Day-by-Day Detailed View */
             <div className="space-y-4">
-              <div className="flex gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+              <div className="flex gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                 {days.map((d) => (
                   <button
                     key={d.num}
                     onClick={() => setSelectedDay(d.num)}
                     className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                       selectedDay === d.num
-                        ? 'bg-[#E50914] text-white shadow-md shadow-red-950/40'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-accent shadow-accent'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <span className="sm:hidden">週{d.short}</span>
@@ -258,12 +262,12 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                       key={p.period}
                       className={`flex items-center p-3 rounded-xl border transition-all ${
                         course
-                          ? 'bg-slate-900/90 border-slate-700/80'
-                          : 'bg-slate-950/40 border-slate-900'
+                          ? 'bg-white dark:bg-slate-900/90 border-slate-200 dark:border-slate-700/80 shadow-sm'
+                          : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200/60 dark:border-slate-900'
                       }`}
                     >
-                      <div className="w-24 sm:w-28 shrink-0 text-left border-r border-slate-800 pr-3">
-                        <div className="text-xs font-bold text-white">{p.label}</div>
+                      <div className="w-24 sm:w-28 shrink-0 text-left border-r border-slate-200 dark:border-slate-800 pr-3">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white">{p.label}</div>
                         <div className="text-[10px] font-mono text-slate-500 tabular-nums mt-0.5">
                           {p.time}
                         </div>
@@ -278,18 +282,18 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                                   className="w-2 h-2 rounded-full shrink-0"
                                   style={{ backgroundColor: course.color }}
                                 />
-                                <h4 className="text-sm font-bold text-white">{course.name}</h4>
-                                <span className="text-[10px] font-mono text-slate-400">
+                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">{course.name}</h4>
+                                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
                                   ({course.code})
                                 </span>
                               </div>
-                              <div className="text-xs text-slate-400 mt-0.5">
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 {course.professor} · {course.credits} 學分 · {course.building}
                               </div>
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <span className="px-2.5 py-1 rounded bg-slate-800 text-xs font-mono font-bold text-amber-400 border border-slate-700">
+                              <span className="px-2.5 py-1 rounded bg-amber-50 dark:bg-slate-800 text-xs font-mono font-bold text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-slate-700">
                                 {course.classroom}
                               </span>
 
@@ -298,7 +302,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                                   href={course.tronclassUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                  className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
                                   title="開啟 Tronclass 課程"
                                 >
                                   <ExternalLink className="w-3.5 h-3.5" />
@@ -307,7 +311,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                             </div>
                           </div>
                         ) : (
-                          <div className="text-xs text-slate-600">無課程安排</div>
+                          <div className="text-xs text-slate-400 dark:text-slate-600">無課程安排</div>
                         )}
                       </div>
                     </div>
@@ -322,34 +326,52 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-[#E50914]" />
-              <h3 className="text-lg font-bold text-white">作業與待辦任務</h3>
+              <CheckCircle2 className="w-5 h-5 text-accent" />
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">作業與待辦任務</h3>
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold bg-accent hover:bg-accent-hover rounded-lg shadow-accent transition"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>新增任務</span>
             </button>
           </div>
 
-          {/* Filter Bar */}
+          {/* 4-Category Refined To-Do Filter Bar */}
           <div className="flex items-center gap-1.5 overflow-x-auto netflix-scrollbar pb-1">
             {[
               { id: 'all', label: `全部 (${todos.length})` },
-              { id: 'assignment', label: '作業' },
-              { id: 'quiz', label: '測驗小考' },
-              { id: 'past_exam', label: '考古題' },
-              { id: 'material', label: '教材' },
+              {
+                id: 'announcement',
+                label: `公告 (${todos.filter((t) => t.type === 'announcement').length})`,
+              },
+              {
+                id: 'material',
+                label: `教材 (${todos.filter((t) => t.type === 'material').length})`,
+              },
+              {
+                id: 'homework',
+                label: `作業 (歷屆考古) (${
+                  todos.filter((t) => t.type === 'assignment' || t.type === 'past_exam').length
+                })`,
+              },
+              {
+                id: 'quiz',
+                label: `線上測驗 (${todos.filter((t) => t.type === 'quiz').length})`,
+              },
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setTodoFilter(tab.id as TodoType | 'all')}
+                onClick={() =>
+                  setTodoFilter(
+                    tab.id as 'all' | 'announcement' | 'material' | 'homework' | 'quiz'
+                  )
+                }
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                   todoFilter === tab.id
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -360,7 +382,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
           {/* Todo Items List */}
           <div className="space-y-2.5 max-h-[580px] overflow-y-auto netflix-scrollbar pr-1">
             {filteredTodos.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl bg-slate-900/50 border border-slate-800 text-slate-500 text-xs">
+              <div className="p-8 text-center rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-500 text-xs">
                 目前沒有待辦事項。點擊「新增任務」建立項目，完成作業可獲得 +5 點數獎勵。
               </div>
             ) : (
@@ -378,25 +400,25 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                     key={todo.id}
                     className={`p-3.5 rounded-xl border transition-all ${
                       todo.completed
-                        ? 'bg-slate-950/60 border-slate-800/60 opacity-60'
-                        : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                        ? 'bg-slate-100 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/60 opacity-65'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-accent shadow-sm dark:shadow-none'
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <button
                         onClick={() => onToggleTodo(todo.id)}
-                        className="mt-0.5 text-slate-400 hover:text-[#E50914] transition"
+                        className="mt-0.5 text-slate-400 hover:text-accent transition"
                       >
                         {todo.completed ? (
                           <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-500/20" />
                         ) : (
-                          <Circle className="w-5 h-5 hover:text-[#E50914]" />
+                          <Circle className="w-5 h-5 hover:text-accent" />
                         )}
                       </button>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                          <span className="font-semibold text-slate-300">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">
                             {typeLabels[todo.type]}
                           </span>
                           <span aria-hidden="true">·</span>
@@ -404,13 +426,13 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                           {todo.urgent && !todo.completed && (
                             <>
                               <span aria-hidden="true">·</span>
-                              <span className="text-red-400 font-bold">即將截止</span>
+                              <span className="text-accent font-bold">即將截止</span>
                             </>
                           )}
                         </div>
 
                         <h4
-                          className={`text-sm font-bold mt-1 text-white leading-snug ${
+                          className={`text-sm font-bold mt-1 text-slate-900 dark:text-white leading-snug ${
                             todo.completed ? 'line-through text-slate-400' : ''
                           }`}
                         >
@@ -418,15 +440,15 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                         </h4>
 
                         {todo.description && (
-                          <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                             {todo.description}
                           </p>
                         )}
 
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400">
                           <span className="font-mono tabular-nums">截止: {todo.dueDate}</span>
                           {!todo.completed && (
-                            <span className="text-amber-400 font-bold font-mono tabular-nums">
+                            <span className="text-amber-600 dark:text-amber-400 font-bold font-mono tabular-nums">
                               +5 點數獎勵
                             </span>
                           )}
@@ -442,19 +464,19 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
       </div>
 
       {/* Bottom Section: Tronclass Connection Status, Token Settings & Instant Sync */}
-      <div className="pt-6 border-t border-slate-800/90 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/75 border border-slate-800">
+      <div className="pt-6 border-t border-slate-200 dark:border-slate-800/90 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900/75 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-3">
             <span
               className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                tronclassConnected ? 'bg-emerald-500' : 'bg-slate-500'
+                tronclassConnected ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'
               }`}
             />
             <div>
-              <div className="text-xs font-bold text-white">
+              <div className="text-xs font-bold text-slate-900 dark:text-white">
                 {tronclassConnected ? 'Tronclass API 已連線' : 'Tronclass 尚未連結 API Token'}
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
                 可在此設定個人 Tronclass 授權 Token 並即時重新抓取最新課表與作業
               </div>
             </div>
@@ -463,16 +485,16 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setIsEditingToken(!isEditingToken)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl transition"
             >
-              <Key className="w-3.5 h-3.5 text-[#E50914]" />
+              <Key className="w-3.5 h-3.5 text-accent" />
               <span>自備 Token 設定</span>
             </button>
 
             <button
               onClick={handleSyncTronclass}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#E50914] hover:bg-red-600 text-white rounded-xl transition shadow-md shadow-red-950/40 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-accent hover:bg-accent-hover rounded-xl transition shadow-accent disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>{isSyncing ? '抓取同步中...' : '即時重新抓取'}</span>
@@ -481,8 +503,8 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
         </div>
 
         {isEditingToken && (
-          <div className="p-4 rounded-xl bg-slate-900 border border-red-900/60 shadow-lg">
-            <div className="text-xs font-bold text-white mb-2">
+          <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-accent-soft shadow-lg">
+            <div className="text-xs font-bold text-slate-900 dark:text-white mb-2">
               輸入 Tronclass 個人授權 Token / 學生 Session：
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -491,11 +513,11 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                 value={inputToken}
                 onChange={(e) => setInputToken(e.target.value)}
                 placeholder="貼上 tronclass_jwt_token 或連線 Cookie..."
-                className="flex-1 px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-[#E50914]"
+                className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-200 focus:outline-none focus:border-accent"
               />
               <button
                 onClick={handleSaveToken}
-                className="px-4 py-2 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
+                className="px-4 py-2 text-xs font-bold bg-accent hover:bg-accent-hover rounded-lg transition"
               >
                 儲存並驗證
               </button>
@@ -506,28 +528,28 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
 
       {/* Add Custom Todo Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-4">新增待辦任務</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">新增待辦任務</h3>
             <form onSubmit={handleCreateTodo} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">任務標題</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">任務標題</label>
                 <input
                   type="text"
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="例如：演算法作業 3、微積分複習小考..."
-                  className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-[#E50914]"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">對應課程</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">對應課程</label>
                 <select
                   value={newCourse}
                   onChange={(e) => setNewCourse(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-[#E50914]"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-accent"
                 >
                   {courses.map((c) => (
                     <option key={c.id} value={c.name}>
@@ -540,26 +562,27 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">類型</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">類型</label>
                   <select
                     value={newType}
                     onChange={(e) => setNewType(e.target.value as TodoType)}
-                    className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white"
                   >
-                    <option value="assignment">課堂作業</option>
-                    <option value="quiz">線上小考</option>
-                    <option value="past_exam">歷屆考古題</option>
+                    <option value="announcement">重要公告</option>
                     <option value="material">教材研讀</option>
+                    <option value="assignment">課堂作業</option>
+                    <option value="past_exam">歷屆考古題</option>
+                    <option value="quiz">線上測驗</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">截止時間</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">截止時間</label>
                   <input
                     type="text"
                     value={newDueDate}
                     onChange={(e) => setNewDueDate(e.target.value)}
                     placeholder="YYYY-MM-DD HH:mm"
-                    className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white font-mono"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white font-mono"
                   />
                 </div>
               </div>
@@ -570,9 +593,9 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                   id="urgentCheck"
                   checked={newUrgent}
                   onChange={(e) => setNewUrgent(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-950 text-[#E50914] focus:ring-0"
+                  className="rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-0"
                 />
-                <label htmlFor="urgentCheck" className="text-xs text-slate-300">
+                <label htmlFor="urgentCheck" className="text-xs text-slate-700 dark:text-slate-300">
                   標記為緊急任務 (置頂提醒)
                 </label>
               </div>
@@ -581,13 +604,13 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold bg-[#E50914] text-white rounded-lg hover:bg-red-600 transition"
+                  className="px-5 py-2 text-xs font-bold bg-accent hover:bg-accent-hover rounded-lg shadow-accent transition"
                 >
                   建立任務 (+5 點)
                 </button>
@@ -600,20 +623,20 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
       {/* Course Detail Quick-Inspect Modal (Great for Mobile Matrix Taps) */}
       {selectedCourse && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-black/75 backdrop-blur-sm p-4"
           onClick={() => setSelectedCourse(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-800 p-5 shadow-2xl space-y-4"
+            className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-2xl space-y-4"
             style={{ borderTopColor: selectedCourse.color, borderTopWidth: '4px' }}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-xs font-mono text-slate-400">
+                <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
                   {selectedCourse.code} · {selectedCourse.credits} 學分
                 </div>
-                <h4 className="text-base font-bold text-white mt-0.5 leading-snug">
+                <h4 className="text-base font-bold text-slate-900 dark:text-white mt-0.5 leading-snug">
                   {selectedCourse.name}
                 </h4>
               </div>
@@ -621,26 +644,26 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                 type="button"
                 onClick={() => setSelectedCourse(null)}
                 aria-label="關閉課程詳情"
-                className="min-h-[40px] min-w-[40px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"
+                className="min-h-[40px] min-w-[40px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-300 border-t border-slate-800 pt-3">
+            <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300 border-t border-slate-200 dark:border-slate-800 pt-3">
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
+                <MapPin className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
                 <span>
-                  {selectedCourse.building} · <strong className="font-mono text-amber-400">{selectedCourse.classroom}</strong>
+                  {selectedCourse.building} · <strong className="font-mono text-amber-600 dark:text-amber-400">{selectedCourse.classroom}</strong>
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#E50914] shrink-0" />
+                <Clock className="w-4 h-4 text-accent shrink-0" />
                 <span className="font-mono tabular-nums">
                   週{['一', '二', '三', '四', '五'][selectedCourse.dayOfWeek - 1]} 第 {selectedCourse.startPeriod}-{selectedCourse.endPeriod} 節 ({selectedCourse.timeRange})
                 </span>
               </div>
-              <div className="text-slate-400">
+              <div className="text-slate-500 dark:text-slate-400">
                 授課教師：{selectedCourse.professor}
               </div>
             </div>
@@ -651,7 +674,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
                   href={selectedCourse.tronclassUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#E50914] hover:bg-red-600 text-xs font-bold text-white transition"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent hover:bg-accent-hover text-xs font-bold transition"
                 >
                   <span>前往 Tronclass</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -660,7 +683,7 @@ export const AcademicHub: React.FC<AcademicHubProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedCourse(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition"
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition"
               >
                 關閉
               </button>
